@@ -1,0 +1,31 @@
+{
+  "title": "Serilog.Sinks.AzureAnalytics",
+  "version": "0.1.5-*",
+  "description": "Serilog event sink that writes to Azure Analytics.",
+  "authors": [
+    "Saleem Mirza"
+  ],
+  "packOptions": {
+    "tags": [
+      "serilog",
+      "sinks",
+      "azure",
+      "analytics"
+    ],
+    "projectUrl": "http://serilog.net",
+    "licenseUrl": "http://www.apache.org/licenses/LICENSE-2.0",
+    "iconUrl": "http://serilog.net/images/serilog-enricher-nuget.png"
+  },
+  "buildOptions": {
+    "debugType": "portable",
+    "outputName": "Serilog.Sinks.AzureAnalytics",
+    "optimize": true
+  },
+  "dependencies": {
+    "Serilog": "2.3.0",
+    "Newtonsoft.Json": "9.0.1"
+  },
+  "frameworks": {
+    "net452": {}
+  }
+}
