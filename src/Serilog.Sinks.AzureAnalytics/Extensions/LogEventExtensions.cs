@@ -65,10 +65,10 @@ namespace Serilog.Sinks.AzureAnalytics.Extensions
                 ? logEvent.Timestamp.ToUniversalTime().ToString("o")
                 : logEvent.Timestamp.ToString("o"));
 
-            eventObject.Add("Level", logEvent.Level.ToString());
-            eventObject.Add("Message", logEvent.RenderMessage(formatProvider));
-            eventObject.Add("Exception", logEvent.Exception);
-            eventObject.Add("Properties", logEvent.Properties.Dictionary());
+            eventObject.Add("LogLevel", logEvent.Level.ToString());
+            eventObject.Add("LogMessage", logEvent.RenderMessage(formatProvider));
+            eventObject.Add("LogException", logEvent.Exception);
+            eventObject.Add("LogProperties", logEvent.Properties.Dictionary());
 
             return eventObject;
         }
