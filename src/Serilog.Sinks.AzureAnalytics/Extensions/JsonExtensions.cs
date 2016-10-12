@@ -33,9 +33,7 @@ namespace Serilog.Sinks.AzureAnalytics.Extensions
         public static IDictionary<string, object> Flaten(this JObject jsonObject)
         {
             if (jsonObject == null)
-            {
                 return null;
-            }
 
             var dict = new Dictionary<string, object>();
             FlatenJToken(dict, jsonObject, string.Empty);
@@ -54,9 +52,7 @@ namespace Serilog.Sinks.AzureAnalytics.Extensions
             {
                 case JTokenType.Object:
                     foreach (var prop in token.Children<JProperty>())
-                    {
                         FlatenJToken(dict, prop.Value, Join(prefix, prop.Name));
-                    }
                     break;
                 case JTokenType.Array:
                     var index = 0;

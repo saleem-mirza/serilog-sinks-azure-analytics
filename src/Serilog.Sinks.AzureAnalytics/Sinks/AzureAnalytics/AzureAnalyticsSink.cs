@@ -42,8 +42,8 @@ namespace Serilog.Sinks.AzureAnalytics
             _authenticationId = authenticationId;
             _logName = logName;
 
-            _analyticsUrl = new Uri("https://" + _workSpaceId + ".ods.opinsights.azure.com/api/logs?api-version=2016-04-01");
-
+            _analyticsUrl =
+                new Uri("https://" + _workSpaceId + ".ods.opinsights.azure.com/api/logs?api-version=2016-04-01");
         }
 
         #region ILogEvent implementation
@@ -57,10 +57,8 @@ namespace Serilog.Sinks.AzureAnalytics
 
         protected override void WriteLogEvent(ICollection<LogEvent> logEventsBatch)
         {
-            if(logEventsBatch == null || logEventsBatch.Count == 0)
-            {
+            if ((logEventsBatch == null) || (logEventsBatch.Count == 0))
                 return;
-            }
 
             var logEventsJson = new StringBuilder();
 
@@ -68,34 +66,33 @@ namespace Serilog.Sinks.AzureAnalytics
             {
                 var jsonString = JsonConvert.SerializeObject(
                     JObject.FromObject(
-                        logEvent.Dictionary(storeTimestampInUtc: true))
+                            logEvent.Dictionary(true))
                         .Flaten());
                 logEventsJson.Append(jsonString);
                 logEventsJson.Append(",");
             }
 
             if (logEventsJson.Length > 0)
-            {
                 logEventsJson.Remove(logEventsJson.Length - 1, 1);
-            }
 
-            if(logEventsBatch.Count > 1)
+            if (logEventsBatch.Count > 1)
             {
                 logEventsJson.Insert(0, "[");
                 logEventsJson.Append("]");
             }
 
             var dateString = DateTime.UtcNow.ToString("r");
-            var stringToHash = "POST\n" + logEventsJson.Length + "\napplication/json\n" + "x-ms-date:" + dateString + "\n/api/logs";
+            var stringToHash = "POST\n" + logEventsJson.Length + "\napplication/json\n" + "x-ms-date:" + dateString +
+                               "\n/api/logs";
             var hashedString = BuildSignature(stringToHash, _authenticationId);
             var signature = "SharedKey " + _workSpaceId + ":" + hashedString;
 
             PostData(signature, dateString, logEventsJson.ToString());
         }
 
-        private string BuildSignature(string message, string secret)
+        private static string BuildSignature(string message, string secret)
         {
-            var encoding = new System.Text.ASCIIEncoding();
+            var encoding = new ASCIIEncoding();
             var keyByte = Convert.FromBase64String(secret);
             var messageBytes = encoding.GetBytes(message);
             using (var hmacsha256 = new HMACSHA256(keyByte))

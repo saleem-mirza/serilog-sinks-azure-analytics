@@ -75,6 +75,7 @@ namespace Serilog.Sinks.AzureAnalytics.Extensions
             if (value != null)
                 return value.Value;
 
+            // ReSharper disable once SuspiciousTypeConversion.Global
             var dictValue = data as IReadOnlyDictionary<string, LogEventPropertyValue>;
             if (dictValue != null)
             {
