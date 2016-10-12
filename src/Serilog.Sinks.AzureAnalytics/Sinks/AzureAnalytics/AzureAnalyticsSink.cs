@@ -32,15 +32,21 @@ namespace Serilog.Sinks.AzureAnalytics
         private readonly string _authenticationId;
         private readonly string _logName;
         private readonly string _workSpaceId;
+        private readonly bool _storeTimestampInUtc;
+        private readonly IFormatProvider _formatProvider;
 
         internal AzureAnalyticsSink(
             string workSpaceId,
             string authenticationId,
-            string logName)
+            string logName,
+            bool storeTimestampInUtc,
+            IFormatProvider formatProvider)
         {
             _workSpaceId = workSpaceId;
             _authenticationId = authenticationId;
             _logName = logName;
+            _storeTimestampInUtc = storeTimestampInUtc;
+            _formatProvider = formatProvider;
 
             _analyticsUrl =
                 new Uri("https://" + _workSpaceId + ".ods.opinsights.azure.com/api/logs?api-version=2016-04-01");
@@ -66,8 +72,11 @@ namespace Serilog.Sinks.AzureAnalytics
             {
                 var jsonString = JsonConvert.SerializeObject(
                     JObject.FromObject(
-                            logEvent.Dictionary(true))
+                            logEvent.Dictionary(
+                                storeTimestampInUtc: _storeTimestampInUtc, 
+                                formatProvider: _formatProvider))
                         .Flaten());
+
                 logEventsJson.Append(jsonString);
                 logEventsJson.Append(",");
             }
