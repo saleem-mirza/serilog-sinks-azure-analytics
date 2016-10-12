@@ -56,13 +56,14 @@ namespace Serilog.Sinks.AzureAnalytics.Extensions
             return expObject;
         }
 
-        private static dynamic ConvertToDictionary(LogEvent logEvent, bool storeTimestampInUtc,
+        private static dynamic ConvertToDictionary(LogEvent logEvent, 
+            bool storeTimestampInUtc,
             IFormatProvider formatProvider = null)
         {
             var eventObject = new ExpandoObject() as IDictionary<string, object>;
             eventObject.Add("Timestamp", storeTimestampInUtc
-                ? logEvent.Timestamp.ToUniversalTime().ToString("r")
-                : logEvent.Timestamp.ToString("r"));
+                ? logEvent.Timestamp.ToUniversalTime().ToString("o")
+                : logEvent.Timestamp.ToString("o"));
 
             eventObject.Add("Level", logEvent.Level.ToString());
             eventObject.Add("Message", logEvent.RenderMessage(formatProvider));
