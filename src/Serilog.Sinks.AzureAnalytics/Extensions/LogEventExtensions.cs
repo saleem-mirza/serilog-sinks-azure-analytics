@@ -28,9 +28,11 @@ namespace Serilog.Sinks.AzureAnalytics.Extensions
             return JsonConvert.SerializeObject(ConvertToDictionary(logEvent, storeTimestampInUtc));
         }
 
-        public static IDictionary<string, object> Dictionary(this LogEvent logEvent, bool storeTimestampInUtc = false)
+        public static IDictionary<string, object> Dictionary(this LogEvent logEvent, 
+            bool storeTimestampInUtc = false,
+            IFormatProvider formatProvider = null)
         {
-            return ConvertToDictionary(logEvent, storeTimestampInUtc);
+            return ConvertToDictionary(logEvent, storeTimestampInUtc, formatProvider);
         }
 
         public static string Json(this IReadOnlyDictionary<string, LogEventPropertyValue> properties)
@@ -54,15 +56,16 @@ namespace Serilog.Sinks.AzureAnalytics.Extensions
             return expObject;
         }
 
-        private static dynamic ConvertToDictionary(LogEvent logEvent, bool storeTimestampInUtc)
+        private static dynamic ConvertToDictionary(LogEvent logEvent, bool storeTimestampInUtc,
+            IFormatProvider formatProvider = null)
         {
             var eventObject = new ExpandoObject() as IDictionary<string, object>;
             eventObject.Add("Timestamp", storeTimestampInUtc
-                ? logEvent.Timestamp.ToUniversalTime().ToString("o")
-                : logEvent.Timestamp.ToString("o"));
+                ? logEvent.Timestamp.ToUniversalTime().ToString("r")
+                : logEvent.Timestamp.ToString("r"));
 
             eventObject.Add("Level", logEvent.Level.ToString());
-            eventObject.Add("MessageTemplate", logEvent.MessageTemplate.ToString());
+            eventObject.Add("Message", logEvent.RenderMessage(formatProvider));
             eventObject.Add("Exception", logEvent.Exception);
             eventObject.Add("Properties", logEvent.Properties.Dictionary());
 

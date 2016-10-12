@@ -12,22 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
 using Serilog.Configuration;
 using Serilog.Events;
 using Serilog.Sinks.AzureAnalytics;
 
 namespace Serilog
 {
+    /// <summary>
+    ///     Adds the WriteTo.AzureLogAnalytics() extension method to <see cref="LoggerConfiguration" />.
+    /// </summary>
     public static class LoggerConfigurationExtentions
     {
-        public static LoggerConfiguration AzureAnalytics(
+        /// <summary>
+        ///     Adds a sink that writes log events to a Azure Log Analytics.
+        /// </summary>
+        /// <param name="loggerConfiguration">The logger configuration.</param>
+        /// <param name="workspaceId">Workspace Id from Azure OMS Portal connected sources.</param>
+        /// <param name="authenticationId">
+        ///     Primary or Secondary key from Azure OMS Portal connected sources.
+        /// </param>
+        /// <param name="logName">A distinguishable log type name. Default is "DiagnosticsLog"</param>
+        /// <param name="restrictedToMinimumLevel">The minimum log event level required in order to write an event to the sink.</param>
+        /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
+        public static LoggerConfiguration AzureLogAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
             string workspaceId,
             string authenticationId,
             string logName = "DiagnosticsLog",
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum)
         {
-            return loggerConfiguration.Sink(new AzureAnalyticsSink(workspaceId, authenticationId, logName), restrictedToMinimumLevel);
+            if (string.IsNullOrEmpty(workspaceId)) throw new ArgumentNullException(nameof(workspaceId));
+            if (string.IsNullOrEmpty(authenticationId)) throw new ArgumentNullException(nameof(authenticationId));
+            return loggerConfiguration.Sink(new AzureAnalyticsSink(workspaceId, authenticationId, logName),
+                restrictedToMinimumLevel);
         }
     }
 }
