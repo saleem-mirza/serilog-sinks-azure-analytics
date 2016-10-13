@@ -21,26 +21,26 @@ using Serilog.Events;
 
 namespace Serilog.Sinks.AzureAnalytics.Extensions
 {
-    public static class LogEventExtensions
+    internal static class LogEventExtensions
     {
-        public static string Json(this LogEvent logEvent, bool storeTimestampInUtc = false)
+        internal static string Json(this LogEvent logEvent, bool storeTimestampInUtc = false)
         {
             return JsonConvert.SerializeObject(ConvertToDictionary(logEvent, storeTimestampInUtc));
         }
 
-        public static IDictionary<string, object> Dictionary(this LogEvent logEvent, 
+        internal static IDictionary<string, object> Dictionary(this LogEvent logEvent,
             bool storeTimestampInUtc = false,
             IFormatProvider formatProvider = null)
         {
             return ConvertToDictionary(logEvent, storeTimestampInUtc, formatProvider);
         }
 
-        public static string Json(this IReadOnlyDictionary<string, LogEventPropertyValue> properties)
+        internal static string Json(this IReadOnlyDictionary<string, LogEventPropertyValue> properties)
         {
             return JsonConvert.SerializeObject(ConvertToDictionary(properties));
         }
 
-        public static IDictionary<string, object> Dictionary(
+        internal static IDictionary<string, object> Dictionary(
             this IReadOnlyDictionary<string, LogEventPropertyValue> properties)
         {
             return ConvertToDictionary(properties);
@@ -56,7 +56,7 @@ namespace Serilog.Sinks.AzureAnalytics.Extensions
             return expObject;
         }
 
-        private static dynamic ConvertToDictionary(LogEvent logEvent, 
+        private static dynamic ConvertToDictionary(LogEvent logEvent,
             bool storeTimestampInUtc,
             IFormatProvider formatProvider = null)
         {

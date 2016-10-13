@@ -17,9 +17,9 @@ using Newtonsoft.Json.Linq;
 
 namespace Serilog.Sinks.AzureAnalytics.Extensions
 {
-    public static class JsonExtensions
+    internal static class JsonExtensions
     {
-        public static IDictionary<string, object> Flaten(this JArray jsonArray)
+        internal static IDictionary<string, object> Flaten(this JArray jsonArray)
         {
             if (jsonArray == null)
                 return null;
@@ -30,7 +30,7 @@ namespace Serilog.Sinks.AzureAnalytics.Extensions
             return dict;
         }
 
-        public static IDictionary<string, object> Flaten(this JObject jsonObject)
+        internal static IDictionary<string, object> Flaten(this JObject jsonObject)
         {
             if (jsonObject == null)
                 return null;

@@ -26,16 +26,16 @@ using Serilog.Sinks.AzureAnalytics.Extensions;
 
 namespace Serilog.Sinks.AzureAnalytics
 {
-    internal class AzureAnalyticsSink : BatchProvider, ILogEventSink
+    internal class AzureLogAnalyticsSink : BatchProvider, ILogEventSink
     {
         private readonly Uri _analyticsUrl;
         private readonly string _authenticationId;
-        private readonly string _logName;
-        private readonly string _workSpaceId;
-        private readonly bool _storeTimestampInUtc;
         private readonly IFormatProvider _formatProvider;
+        private readonly string _logName;
+        private readonly bool _storeTimestampInUtc;
+        private readonly string _workSpaceId;
 
-        internal AzureAnalyticsSink(
+        internal AzureLogAnalyticsSink(
             string workSpaceId,
             string authenticationId,
             string logName,
@@ -73,8 +73,8 @@ namespace Serilog.Sinks.AzureAnalytics
                 var jsonString = JsonConvert.SerializeObject(
                     JObject.FromObject(
                             logEvent.Dictionary(
-                                storeTimestampInUtc: _storeTimestampInUtc, 
-                                formatProvider: _formatProvider))
+                                _storeTimestampInUtc,
+                                _formatProvider))
                         .Flaten());
 
                 logEventsJson.Append(jsonString);
