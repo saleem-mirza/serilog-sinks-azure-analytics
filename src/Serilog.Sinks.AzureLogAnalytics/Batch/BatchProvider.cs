@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 using Serilog.Debugging;
 using Serilog.Events;
 
-namespace Serilog.Sinks.AzureAnalytics.Batch
+namespace Serilog.Sinks.AzureLogAnalytics.Batch
 {
     internal abstract class BatchProvider : IDisposable
     {

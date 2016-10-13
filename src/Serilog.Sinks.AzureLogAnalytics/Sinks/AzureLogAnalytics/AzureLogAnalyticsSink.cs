@@ -21,12 +21,12 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog.Core;
 using Serilog.Events;
-using Serilog.Sinks.AzureAnalytics.Batch;
-using Serilog.Sinks.AzureAnalytics.Extensions;
+using Serilog.Sinks.AzureLogAnalytics.Batch;
+using Serilog.Sinks.AzureLogAnalytics.Extensions;
 
-namespace Serilog.Sinks.AzureAnalytics
+namespace Serilog.Sinks.AzureLogAnalytics
 {
-    internal class AzureAnalyticsSink : BatchProvider, ILogEventSink
+    internal class AzureLogAnalyticsSink : BatchProvider, ILogEventSink
     {
         private readonly Uri _analyticsUrl;
         private readonly string _authenticationId;
@@ -35,7 +35,7 @@ namespace Serilog.Sinks.AzureAnalytics
         private readonly bool _storeTimestampInUtc;
         private readonly IFormatProvider _formatProvider;
 
-        internal AzureAnalyticsSink(
+        internal AzureLogAnalyticsSink(
             string workSpaceId,
             string authenticationId,
             string logName,

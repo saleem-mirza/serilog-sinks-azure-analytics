@@ -15,7 +15,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 
-namespace Serilog.Sinks.AzureAnalytics.Extensions
+namespace Serilog.Sinks.AzureLogAnalytics.Extensions
 {
     public static class JsonExtensions
     {

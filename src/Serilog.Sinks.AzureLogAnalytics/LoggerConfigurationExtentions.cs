@@ -15,7 +15,7 @@
 using System;
 using Serilog.Configuration;
 using Serilog.Events;
-using Serilog.Sinks.AzureAnalytics;
+using Serilog.Sinks.AzureLogAnalytics;
 
 namespace Serilog
 {
@@ -49,7 +49,7 @@ namespace Serilog
             if (string.IsNullOrEmpty(workspaceId)) throw new ArgumentNullException(nameof(workspaceId));
             if (string.IsNullOrEmpty(authenticationId)) throw new ArgumentNullException(nameof(authenticationId));
             return loggerConfiguration.Sink(
-                new AzureAnalyticsSink(
+                new AzureLogAnalyticsSink(
                     workspaceId, 
                     authenticationId, 
                     logName,

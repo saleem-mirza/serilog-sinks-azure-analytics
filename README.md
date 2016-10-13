@@ -1,15 +1,15 @@
-# Serilog.Sinks.AzureAnalytics
+# Serilog.Sinks.AzureLogAnalytics
 A Serilog sink that writes to Azure Log Analytics.
 
 
 ## Getting started
-Install [Serilog.Sinks.AzureAnalytics](https://www.nuget.org/packages/serilog.sinks.azureanalytics) from NuGet
+Install [Serilog.Sinks.AzureLogAnalytics](https://www.nuget.org/packages/serilog.sinks.AzureLogAnalytics) from NuGet
 
 ```PowerShell
-Install-Package Serilog.Sinks.AzureAnalytics
+Install-Package Serilog.Sinks.AzureLogAnalytics
 ```
 
-Configure logger by calling `WriteTo.AzureAnalytics(<workspaceId>, <authenticationId>)`
+Configure logger by calling `WriteTo.AzureLogAnalytics(<workspaceId>, <authenticationId>)`
 
 > `workspaceId`: Workspace Id from Azure OMS Portal connected sources.
 >
@@ -17,13 +17,13 @@ Configure logger by calling `WriteTo.AzureAnalytics(<workspaceId>, <authenticati
 
 ```C#
 var logger = new LoggerConfiguration()
-    .WriteTo.AzureAnalytics(<workspaceId>, <authenticationId>)
+    .WriteTo.AzureLogAnalytics(<workspaceId>, <authenticationId>)
     .CreateLogger();
 ```
 
 ## XML <appSettings> configuration
 
-To use the AzureAnalytics sink with the [Serilog.Settings.AppSettings](https://www.nuget.org/packages/Serilog.Settings.AppSettings) package, first install that package if you haven't already done so:
+To use the AzureLogAnalytics sink with the [Serilog.Settings.AppSettings](https://www.nuget.org/packages/Serilog.Settings.AppSettings) package, first install that package if you haven't already done so:
 
 ```PowerShell
 Install-Package Serilog.Settings.AppSettings
@@ -35,13 +35,13 @@ var logger = new LoggerConfiguration()
     .ReadFrom.AppSettings()
     .CreateLogger();
 ```
-In your application's App.config or Web.config file, specify the `AzureAnalytics` sink assembly and required **workspaceId** and **authenticationId** parameters under the `<appSettings>`
+In your application's App.config or Web.config file, specify the `AzureLogAnalytics` sink assembly and required **workspaceId** and **authenticationId** parameters under the `<appSettings>`
 
 ```XML
 <appSettings>
-  <add key="serilog:using:AzureAnalytics" value="Serilog.Sinks.AzureAnalytics" />
-  <add key="serilog:write-to:AzureAnalytics.workspaceId" value="*************" />
-  <add key="serilog:write-to:AzureAnalytics.authenticationId" value="*************" />
+  <add key="serilog:using:AzureLogAnalytics" value="Serilog.Sinks.AzureLogAnalytics" />
+  <add key="serilog:write-to:AzureLogAnalytics.workspaceId" value="*************" />
+  <add key="serilog:write-to:AzureLogAnalytics.authenticationId" value="*************" />
  </appSettings>
 ```
 
