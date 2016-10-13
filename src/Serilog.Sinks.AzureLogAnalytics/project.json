@@ -1,6 +1,6 @@
 {
   "title": "Serilog.Sinks.AzureLogAnalytics",
-  "version": "1.1.5-*",
+  "version": "1.1.9-*",
   "description": "Serilog event sink that writes to Azure Analytics.",
   "authors": [
     "Saleem Mirza"
