@@ -35,7 +35,10 @@ namespace Serilog
         /// <param name="logName">A distinguishable log type name. Default is "DiagnosticsLog"</param>
         /// <param name="restrictedToMinimumLevel">The minimum log event level required in order to write an event to the sink.</param>
         /// <param name="storeTimestampInUtc">Flag dictating if timestamp to be stored in UTC or local timezone format.</param>
-        /// <param name="formatProvider">Supplies an object that provides formatting information for formatting and parsing operations</param>
+        /// <param name="formatProvider">
+        ///     Supplies an object that provides formatting information for formatting and parsing
+        ///     operations
+        /// </param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         public static LoggerConfiguration AzureLogAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
@@ -49,9 +52,9 @@ namespace Serilog
             if (string.IsNullOrEmpty(workspaceId)) throw new ArgumentNullException(nameof(workspaceId));
             if (string.IsNullOrEmpty(authenticationId)) throw new ArgumentNullException(nameof(authenticationId));
             return loggerConfiguration.Sink(
-                new AzureAnalyticsSink(
-                    workspaceId, 
-                    authenticationId, 
+                new AzureLogAnalyticsSink(
+                    workspaceId,
+                    authenticationId,
                     logName,
                     storeTimestampInUtc,
                     formatProvider),
