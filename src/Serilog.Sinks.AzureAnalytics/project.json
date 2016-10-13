@@ -19,7 +19,9 @@
   "buildOptions": {
     "debugType": "portable",
     "outputName": "Serilog.Sinks.AzureLogAnalytics",
-    "optimize": true
+    "allowUnsafe": true,
+    "optimize": true,
+    "keyFile": "Serilog.snk"
   },
   "dependencies": {
     "Serilog": "2.3.0",
