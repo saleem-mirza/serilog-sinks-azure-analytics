@@ -17,12 +17,13 @@ using System.Collections.Generic;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog.Core;
 using Serilog.Events;
-using Serilog.Sinks.AzureAnalytics.Batch;
-using Serilog.Sinks.AzureAnalytics.Extensions;
+using Serilog.Sinks.Batch;
+using Serilog.Sinks.Extensions;
 
 namespace Serilog.Sinks.AzureAnalytics
 {
@@ -40,7 +41,7 @@ namespace Serilog.Sinks.AzureAnalytics
             string authenticationId,
             string logName,
             bool storeTimestampInUtc,
-            IFormatProvider formatProvider)
+            IFormatProvider formatProvider) : base(nThreads: 2)
         {
             _workSpaceId = workSpaceId;
             _authenticationId = authenticationId;
@@ -96,7 +97,7 @@ namespace Serilog.Sinks.AzureAnalytics
             var hashedString = BuildSignature(stringToHash, _authenticationId);
             var signature = "SharedKey " + _workSpaceId + ":" + hashedString;
 
-            PostData(signature, dateString, logEventsJson.ToString());
+            PostData(signature, dateString, logEventsJson.ToString()).Wait();
         }
 
         private static string BuildSignature(string message, string secret)
@@ -111,7 +112,7 @@ namespace Serilog.Sinks.AzureAnalytics
             }
         }
 
-        private void PostData(string signature, string dateString, string jsonString)
+        private async Task PostData(string signature, string dateString, string jsonString)
         {
             using (var client = new WebClient())
             {
@@ -120,7 +121,7 @@ namespace Serilog.Sinks.AzureAnalytics
                 client.Headers.Add("Authorization", signature);
                 client.Headers.Add("x-ms-date", dateString);
                 client.Headers.Add("time-generated-field", "Timestamp");
-                client.UploadString(_analyticsUrl, "POST", jsonString);
+                await client.UploadStringTaskAsync(_analyticsUrl, "POST", jsonString).ConfigureAwait(false);
             }
         }
     }
