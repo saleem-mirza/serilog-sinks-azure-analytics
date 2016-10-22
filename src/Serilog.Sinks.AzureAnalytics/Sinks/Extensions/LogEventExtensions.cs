@@ -19,7 +19,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using Serilog.Events;
 
-namespace Serilog.Sinks.AzureAnalytics.Extensions
+namespace Serilog.Sinks.Extensions
 {
     internal static class LogEventExtensions
     {
