@@ -22,7 +22,7 @@ using Serilog.Events;
 
 namespace Serilog.Sinks.Batch
 {
-#if NET452
+#if NET45
 
     internal abstract class BatchProvider : IDisposable
     {
