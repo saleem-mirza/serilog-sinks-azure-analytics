@@ -14,7 +14,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net;
+using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,11 +25,7 @@ using Serilog.Events;
 using Serilog.Sinks.Batch;
 using Serilog.Sinks.Extensions;
 
-#if NETSTANDARD1_6
-using System.Net.Http;
-#endif
-
-namespace Serilog.Sinks.AzureAnalytics
+namespace Serilog.Sinks
 {
     internal class AzureLogAnalyticsSink : BatchProvider, ILogEventSink
     {
@@ -118,29 +114,17 @@ namespace Serilog.Sinks.AzureAnalytics
 
         private async Task PostData(string signature, string dateString, string jsonString)
         {
-#if NETSTANDARD1_6
             using (var client = new HttpClient())
             {
                 var headers = client.DefaultRequestHeaders;
                 headers.Add("ContentType", "application/json");
-                headers.Add("Log-Type", _logName);
+                headers.Add((string) "Log-Type", (string) _logName);
                 headers.Add("Authorization", signature);
                 headers.Add("x-ms-date", dateString);
                 headers.Add("time-generated-field", "Timestamp");
-                await client.PostAsync(_analyticsUrl, new StringContent(jsonString, Encoding.UTF8, "application/json"));
+                await client.PostAsync((Uri) _analyticsUrl, new StringContent(jsonString, Encoding.UTF8, "application/json"));
 
             }
-#else
-            using (var client = new WebClient())
-            {
-                client.Headers.Add("ContentType", "application/json");
-                client.Headers.Add("Log-Type", _logName);
-                client.Headers.Add("Authorization", signature);
-                client.Headers.Add("x-ms-date", dateString);
-                client.Headers.Add("time-generated-field", "Timestamp");
-                await client.UploadStringTaskAsync(_analyticsUrl, "POST", jsonString).ConfigureAwait(false);
-            }
-#endif
         }
     }
 }

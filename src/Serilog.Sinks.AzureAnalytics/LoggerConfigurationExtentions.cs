@@ -15,7 +15,7 @@
 using System;
 using Serilog.Configuration;
 using Serilog.Events;
-using Serilog.Sinks.AzureAnalytics;
+using Serilog.Sinks;
 
 namespace Serilog
 {
