@@ -17,6 +17,7 @@ using Serilog.Events;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -31,9 +32,10 @@ namespace Serilog.Sinks.Batch
         private readonly TimeSpan _thresholdTimeSpan = TimeSpan.FromSeconds(10);
         private readonly AutoResetEvent _timerResetEvent = new AutoResetEvent(false);
         private readonly Task _timerTask;
-        private readonly Task _workerTask;
+        private readonly Task _eventPumpTask;
+        private readonly Task _cleanupTask;
         private readonly List<Task> _workerTasks = new List<Task>();
-        
+
         private bool _canStop;
 
         protected BatchProvider(uint batchSize = 100, int nThreads = 1)
@@ -41,9 +43,21 @@ namespace Serilog.Sinks.Batch
             _batchSize = batchSize;
             _logEventBatch = new List<LogEvent>();
             _messageQueue = new BlockingCollection<IList<LogEvent>>();
-            
-            _workerTask = Task.Factory.StartNew(Pump);
-            _timerTask = Task.Factory.StartNew(TimerPump);
+
+            _eventPumpTask = Task.Factory.StartNew(Pump, TaskCreationOptions.LongRunning);
+            _timerTask = Task.Factory.StartNew(TimerPump, TaskCreationOptions.LongRunning);
+            _cleanupTask = new Task(() =>
+            {
+                _canStop = true;
+                _timerResetEvent.Set();
+                _timerTask.Wait();
+
+                IList<LogEvent> eventBatch;
+                while (_messageQueue.TryTake(out eventBatch))
+                    WriteLogEvent(eventBatch);
+
+                FlushLogEventBatch();
+            });
         }
 
         private void Pump()
@@ -53,10 +67,7 @@ namespace Serilog.Sinks.Batch
                 while (true)
                 {
                     var logEvents = _messageQueue.Take(_cancellationToken.Token);
-                    var task = Task.Factory.StartNew((x) =>
-                    {
-                        WriteLogEvent(x as IList<LogEvent>);
-                    }, logEvents);
+                    var task = Task.Factory.StartNew((x) => { WriteLogEvent(x as IList<LogEvent>); }, logEvents);
 
                     _workerTasks.Add(task);
 
@@ -67,13 +78,7 @@ namespace Serilog.Sinks.Batch
             }
             catch (OperationCanceledException)
             {
-                _canStop = true;
-                _timerResetEvent.Set();
-                _timerTask.Wait();
-
-                IList<LogEvent> eventBatch;
-                while (_messageQueue.TryTake(out eventBatch))
-                    WriteLogEvent(eventBatch);
+                FluchAndCloseEvents();
             }
             catch (Exception e)
             {
@@ -92,6 +97,11 @@ namespace Serilog.Sinks.Batch
 
         private void FlushLogEventBatch()
         {
+            if (!_logEventBatch.Any())
+            {
+                return;
+            }
+
             lock (this)
             {
                 _messageQueue.Add(_logEventBatch.ToArray());
@@ -108,7 +118,7 @@ namespace Serilog.Sinks.Batch
 
         protected abstract void WriteLogEvent(ICollection<LogEvent> logEventsBatch);
 
-    #region IDisposable Support
+        #region IDisposable Support
 
         private bool _disposedValue; // To detect redundant calls
 
@@ -120,11 +130,35 @@ namespace Serilog.Sinks.Batch
                 {
                     SelfLog.WriteLine("Halting sink...");
                     _cancellationToken.Cancel();
+
                     Task.WaitAll(_workerTasks.ToArray());
+
+                    FluchAndCloseEvents();
+
                     SelfLog.WriteLine("Sink halted successfully.");
                 }
 
                 _disposedValue = true;
+            }
+        }
+
+        private void FluchAndCloseEvents()
+        {
+            if (_cleanupTask.Status != TaskStatus.Created)
+            {
+                return;
+            }
+
+            try
+            {
+                _cleanupTask.RunSynchronously();
+                _cleanupTask.Wait(TimeSpan.FromSeconds(30));
+
+                Task.WaitAll(new[] {_eventPumpTask, _timerTask}, TimeSpan.FromSeconds(30));
+            }
+            catch (Exception ex)
+            {
+                SelfLog.WriteLine(ex.Message);
             }
         }
 
@@ -133,6 +167,6 @@ namespace Serilog.Sinks.Batch
             Dispose(true);
         }
 
-    #endregion
+        #endregion
     }
 }

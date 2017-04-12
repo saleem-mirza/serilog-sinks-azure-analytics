@@ -11,8 +11,8 @@
     <PackageProjectUrl>http://serilog.net</PackageProjectUrl>
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
     <Copyright>Copyright © Zethian Inc. 2013-2017</Copyright>
-    <AssemblyVersion>1.8.2.0</AssemblyVersion>	
-	<Version>1.8.2</Version>
+    <AssemblyVersion>1.8.3.0</AssemblyVersion>	
+	<Version>1.8.3</Version>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>Serilog.snk</AssemblyOriginatorKeyFile>
     <TargetFrameworks>net45;netstandard1.6</TargetFrameworks>
@@ -29,7 +29,6 @@
 
     <PropertyGroup Condition="'$(TargetFramework)'!='netstandard1.6'">
         <DefineConstants>DEBUG;TRACE;NET45</DefineConstants>
-        <RuntimeIdentifier>win7-x86</RuntimeIdentifier>
     </PropertyGroup>
     
   <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
