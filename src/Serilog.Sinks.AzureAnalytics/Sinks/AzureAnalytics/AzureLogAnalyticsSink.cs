@@ -15,12 +15,14 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog.Core;
+using Serilog.Debugging;
 using Serilog.Events;
 using Serilog.Sinks.Batch;
 using Serilog.Sinks.Extensions;
@@ -116,14 +118,17 @@ namespace Serilog.Sinks
         {
             using (var client = new HttpClient())
             {
-                var headers = client.DefaultRequestHeaders;
-                headers.Add("ContentType", "application/json");
-                headers.Add((string) "Log-Type", (string) _logName);
-                headers.Add("Authorization", signature);
-                headers.Add("x-ms-date", dateString);
-                headers.Add("time-generated-field", "Timestamp");
-                await client.PostAsync((Uri) _analyticsUrl, new StringContent(jsonString, Encoding.UTF8, "application/json"));
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Add("Log-Type", _logName);
+                client.DefaultRequestHeaders.Add("Authorization", signature);
+                client.DefaultRequestHeaders.Add("x-ms-date", dateString);
+                client.DefaultRequestHeaders.Add("time-generated-field", "");
 
+                var httpContent = new StringContent(jsonString, Encoding.UTF8);
+                httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                var response = await client.PostAsync(_analyticsUrl, httpContent);
+                
+                SelfLog.WriteLine(response.ReasonPhrase);
             }
         }
     }
