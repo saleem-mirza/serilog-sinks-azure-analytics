@@ -4,18 +4,18 @@
     <AssemblyTitle>Serilog.Sinks.AzureAnalytics</AssemblyTitle>
     <Authors>Saleem Mirza</Authors>
     <AssemblyName>Serilog.Sinks.AzureAnalytics</AssemblyName>
-    <Description>Serilog event sink that writes to Azure Analytics</Description>	
+    <Description>Serilog event sink that writes to Azure Analytics</Description>
     <PackageId>Serilog.Sinks.AzureAnalytics</PackageId>
     <PackageTags>serilog;logging;Azure;Analytics</PackageTags>
     <PackageIconUrl>http://serilog.net/images/serilog-sink-nuget.png</PackageIconUrl>
     <PackageProjectUrl>http://serilog.net</PackageProjectUrl>
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
     <Copyright>Copyright © Zethian Inc. 2013-2017</Copyright>
-    <AssemblyVersion>1.8.3.0</AssemblyVersion>	
-	<Version>1.8.3</Version>
+    <AssemblyVersion>1.8.8.0</AssemblyVersion>
+    <Version>1.8.8</Version>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>Serilog.snk</AssemblyOriginatorKeyFile>
-    <TargetFrameworks>net45;netstandard1.6</TargetFrameworks>
+    <TargetFrameworks>net45;netcoreapp1.0</TargetFrameworks>
     <RootNamespace>Serilog</RootNamespace>
   </PropertyGroup>
 
@@ -23,28 +23,26 @@
     <Version>$(Version)-$(VersionSuffix)</Version>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)'=='netstandard1.6'">
+  <PropertyGroup Condition="'$(TargetFramework)'=='netcoreapp1.0'">
     <DefineConstants>DEBUG;TRACE;NETSTANDARD1_6</DefineConstants>
   </PropertyGroup>
 
-    <PropertyGroup Condition="'$(TargetFramework)'!='netstandard1.6'">
-        <DefineConstants>DEBUG;TRACE;NET45</DefineConstants>
-    </PropertyGroup>
-    
+  <PropertyGroup Condition="'$(TargetFramework)'!='netcoreapp1.0'">
+    <DefineConstants>DEBUG;TRACE;NET45</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+  <PackageReference Include="Serilog" Version="2.4.0" />
+  <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
+  </ItemGroup>
+  
   <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
-    <PackageReference Include="Serilog" Version="2.4.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
     <Reference Include="System" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Net" />
     <Reference Include="System.Net.Http" />
   </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.6'">
-    <PackageReference Include="Serilog" Version="2.4.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="10.0.2" />
-  </ItemGroup>
-
+  
   <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>
