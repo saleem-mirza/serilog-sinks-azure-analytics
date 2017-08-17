@@ -40,7 +40,7 @@ namespace Serilog.Sinks.Batch
 
         private bool _canStop;
 
-        protected BatchProvider(uint batchSize = 100, int nThreads = 1)
+        protected BatchProvider(uint batchSize = 100)
         {
             _batchSize = batchSize == 0 ? 1: batchSize;
             _logEventBatch = new ConcurrentQueue<LogEvent>();
