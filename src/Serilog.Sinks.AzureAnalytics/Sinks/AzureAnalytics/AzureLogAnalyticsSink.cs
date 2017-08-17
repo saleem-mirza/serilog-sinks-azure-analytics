@@ -43,7 +43,8 @@ namespace Serilog.Sinks
             string authenticationId,
             string logName,
             bool storeTimestampInUtc,
-            IFormatProvider formatProvider)
+            IFormatProvider formatProvider,
+            uint batchSize = 100): base(batchSize)
         {
             _workSpaceId = workSpaceId;
             _authenticationId = authenticationId;
