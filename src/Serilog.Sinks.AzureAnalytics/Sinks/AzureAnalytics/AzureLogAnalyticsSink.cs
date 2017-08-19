@@ -147,7 +147,7 @@ namespace Serilog.Sinks
             }
             catch (Exception ex)
             {
-                SelfLog.WriteLine((ex.InnerException??ex).Message);
+                SelfLog.WriteLine("ERROR: " + ex.InnerException??ex).Message);
                 SelfLog.WriteLine("Retrying after 10 seconds...");
                 await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
                 return "FAILED";
