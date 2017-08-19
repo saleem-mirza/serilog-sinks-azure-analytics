@@ -14,6 +14,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -100,7 +101,15 @@ namespace Serilog.Sinks
             var hashedString = BuildSignature(stringToHash, _authenticationId);
             var signature = "SharedKey " + _workSpaceId + ":" + hashedString;
 
-            PostDataAsync(signature, dateString, logEventsJson.ToString()).Wait();
+            var result = PostDataAsync(signature, dateString, logEventsJson.ToString())
+                .Result;
+            if (result != "OK")
+            {
+                foreach (var logEvent in logEventsBatch)
+                {
+                    PushEvent(logEvent);
+                }
+            }
         }
 
         private static string BuildSignature(string message, string secret)
@@ -115,21 +124,33 @@ namespace Serilog.Sinks
             }
         }
 
-        private async Task PostDataAsync(string signature, string dateString, string jsonString)
+        private async Task<string> PostDataAsync(string signature, string dateString, string jsonString)
         {
-            using (var client = new HttpClient())
+            try
             {
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-                client.DefaultRequestHeaders.Add("Log-Type", _logName);
-                client.DefaultRequestHeaders.Add("Authorization", signature);
-                client.DefaultRequestHeaders.Add("x-ms-date", dateString);
-                client.DefaultRequestHeaders.Add("time-generated-field", "");
+                using (var client = new HttpClient())
+                {
+                    client.DefaultRequestHeaders.Add("Accept", "application/json");
+                    client.DefaultRequestHeaders.Add("Log-Type", _logName);
+                    client.DefaultRequestHeaders.Add("Authorization", signature);
+                    client.DefaultRequestHeaders.Add("x-ms-date", dateString);
+                    client.DefaultRequestHeaders.Add("time-generated-field", "");
 
-                var httpContent = new StringContent(jsonString, Encoding.UTF8);
-                httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-                var response = await client.PostAsync(_analyticsUrl, httpContent);
-                
-                SelfLog.WriteLine(response.ReasonPhrase);
+                    var httpContent = new StringContent(jsonString, Encoding.UTF8);
+                    httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                    var response = await client.PostAsync(_analyticsUrl, httpContent)
+                        .ConfigureAwait(false);
+
+                    SelfLog.WriteLine(response.ReasonPhrase);
+                    return response.ReasonPhrase;
+                }
+            }
+            catch (Exception ex)
+            {
+                SelfLog.WriteLine((ex.InnerException??ex).Message);
+                SelfLog.WriteLine("Retrying after 10 seconds...");
+                await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+                return "FAILED";
             }
         }
     }
