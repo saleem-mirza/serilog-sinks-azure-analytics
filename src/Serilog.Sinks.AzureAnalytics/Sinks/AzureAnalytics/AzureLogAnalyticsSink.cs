@@ -45,7 +45,8 @@ namespace Serilog.Sinks
             string logName,
             bool storeTimestampInUtc,
             IFormatProvider formatProvider,
-            uint batchSize = 100): base(batchSize)
+            int logBufferSize,
+            int batchSize = 100): base(batchSize, logBufferSize)
         {
             _workSpaceId = workSpaceId;
             _authenticationId = authenticationId;
@@ -66,10 +67,10 @@ namespace Serilog.Sinks
 
         #endregion
 
-        protected override void WriteLogEvent(ICollection<LogEvent> logEventsBatch)
+        protected override async Task<bool> WriteLogEventAsync(ICollection<LogEvent> logEventsBatch)
         {
             if ((logEventsBatch == null) || (logEventsBatch.Count == 0))
-                return;
+                return true;
 
             var logEventsJson = new StringBuilder();
 
@@ -101,15 +102,8 @@ namespace Serilog.Sinks
             var hashedString = BuildSignature(stringToHash, _authenticationId);
             var signature = "SharedKey " + _workSpaceId + ":" + hashedString;
 
-            var result = PostDataAsync(signature, dateString, logEventsJson.ToString())
-                .Result;
-            if (result != "OK")
-            {
-                foreach (var logEvent in logEventsBatch)
-                {
-                    PushEvent(logEvent);
-                }
-            }
+            var result = await PostDataAsync(signature, dateString, logEventsJson.ToString()).ConfigureAwait(false);
+            return result == "OK";
         }
 
         private static string BuildSignature(string message, string secret)
@@ -139,7 +133,7 @@ namespace Serilog.Sinks
                     var httpContent = new StringContent(jsonString, Encoding.UTF8);
                     httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
                     var response = await client.PostAsync(_analyticsUrl, httpContent)
-                        .ConfigureAwait(false);
+                        .ConfigureAwait(true);
 
                     SelfLog.WriteLine(response.ReasonPhrase);
                     return response.ReasonPhrase;
@@ -147,9 +141,7 @@ namespace Serilog.Sinks
             }
             catch (Exception ex)
             {
-                SelfLog.WriteLine("ERROR: " + ex.InnerException??ex).Message);
-                SelfLog.WriteLine("Retrying after 10 seconds...");
-                await Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+                SelfLog.WriteLine("ERROR: " + (ex.InnerException??ex).Message);
                 return "FAILED";
             }
         }

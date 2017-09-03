@@ -39,6 +39,8 @@ namespace Serilog
         ///     Supplies an object that provides formatting information for formatting and parsing
         ///     operations
         /// </param>
+        /// <param name="logBufferSize">Maximum number of log entries this sink can hold before stop accepting log messages. Supported size is between 1000 and 25000</param>
+        /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         public static LoggerConfiguration AzureLogAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
@@ -47,7 +49,9 @@ namespace Serilog
             string logName = "DiagnosticsLog",
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             bool storeTimestampInUtc = true,
-            IFormatProvider formatProvider = null)
+            IFormatProvider formatProvider = null,
+            int logBufferSize = 2000,
+            int batchSize = 100)
         {
             if (string.IsNullOrEmpty(workspaceId)) throw new ArgumentNullException(nameof(workspaceId));
             if (string.IsNullOrEmpty(authenticationId)) throw new ArgumentNullException(nameof(authenticationId));
@@ -57,7 +61,9 @@ namespace Serilog
                     authenticationId,
                     logName,
                     storeTimestampInUtc,
-                    formatProvider),
+                    formatProvider,
+                    logBufferSize,
+                    batchSize),
                 restrictedToMinimumLevel);
         }
     }
