@@ -18,7 +18,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -154,7 +153,7 @@ namespace Serilog.Sinks.Batch
             var logEventBatchSize = _logEventBatch.Count >= _batchSize ? (int)_batchSize : _logEventBatch.Count;
             var logEventList = new List<LogEvent>();
 
-            for (int i = 0; i < logEventBatchSize; i++)
+            for (var i = 0; i < logEventBatchSize; i++)
             {
                 if(_logEventBatch.TryDequeue(out LogEvent logEvent))
                 {
@@ -166,11 +165,10 @@ namespace Serilog.Sinks.Batch
 
         protected void PushEvent(LogEvent logEvent)
         {
-            if (_numMessages <= _maxBufferSize)
-            {
-                _eventsCollection.Add(logEvent);
-                Interlocked.Increment(ref _numMessages);             
-            }
+            if (_numMessages > _maxBufferSize)
+                return;
+            _eventsCollection.Add(logEvent);
+            Interlocked.Increment(ref _numMessages);
         }
 
         protected abstract Task<bool> WriteLogEventAsync(ICollection<LogEvent> logEventsBatch);
