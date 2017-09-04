@@ -25,8 +25,8 @@ namespace Serilog.Sinks.Batch
 {
     internal abstract class BatchProvider : IDisposable
     {
-        private const int MaxSupportedBufferSize = 25000;
-        private const int MaxSupportedBatchSize = 1000;
+        private const int MaxSupportedBufferSize = 100_000;
+        private const int MaxSupportedBatchSize = 1_000;
         private int _numMessages;
         private bool _canStop;
 
@@ -45,10 +45,10 @@ namespace Serilog.Sinks.Batch
         private readonly List<Task> _workerTasks = new List<Task>();
         private static SemaphoreSlim _semaphore;
 
-        protected BatchProvider(int batchSize = 100, int maxBufferSize = 2000)
+        protected BatchProvider(int batchSize = 100, int maxBufferSize = 25_000)
         {
             _semaphore = new SemaphoreSlim(Environment.ProcessorCount, Environment.ProcessorCount);
-            _maxBufferSize = Math.Min(Math.Max(1000, maxBufferSize), MaxSupportedBufferSize);
+            _maxBufferSize = Math.Min(Math.Max(5_000, maxBufferSize), MaxSupportedBufferSize);
             _batchSize = Math.Min(Math.Max(batchSize, 1), MaxSupportedBatchSize);
 
             _logEventBatch = new ConcurrentQueue<LogEvent>();
@@ -159,7 +159,7 @@ namespace Serilog.Sinks.Batch
                 return;
             }
 
-            var logEventBatchSize = _logEventBatch.Count >= _batchSize ? (int) _batchSize : _logEventBatch.Count;
+            var logEventBatchSize = _logEventBatch.Count >= _batchSize ? (int)_batchSize : _logEventBatch.Count;
             var logEventList = new List<LogEvent>();
 
             for (var i = 0; i < logEventBatchSize; i++)
@@ -192,7 +192,7 @@ namespace Serilog.Sinks.Batch
             {
                 if (disposing)
                 {
-                    FluchAndCloseEventHandlers();
+                    FlushAndCloseEventHandlers();
 
                     SelfLog.WriteLine("Sink halted successfully.");
                 }
@@ -201,7 +201,7 @@ namespace Serilog.Sinks.Batch
             }
         }
 
-        private void FluchAndCloseEventHandlers()
+        private void FlushAndCloseEventHandlers()
         {
             try
             {
@@ -230,7 +230,8 @@ namespace Serilog.Sinks.Batch
 
                 // Flush events batch
                 while (_batchEventsCollection.TryTake(out IList<LogEvent> eventBatch))
-                    WriteLogEventAsync(eventBatch);
+                    WriteLogEventAsync(eventBatch)
+                        .Wait(TimeSpan.FromSeconds(30));
 
                 Task.WaitAll(
                     new[]

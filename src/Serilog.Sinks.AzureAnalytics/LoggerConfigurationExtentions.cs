@@ -39,7 +39,7 @@ namespace Serilog
         ///     Supplies an object that provides formatting information for formatting and parsing
         ///     operations
         /// </param>
-        /// <param name="logBufferSize">Maximum number of log entries this sink can hold before stop accepting log messages. Supported size is between 1000 and 25000</param>
+        /// <param name="logBufferSize">Maximum number of log entries this sink can hold before stop accepting log messages. Supported size is between 5000 and 25000</param>
         /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         public static LoggerConfiguration AzureLogAnalytics(

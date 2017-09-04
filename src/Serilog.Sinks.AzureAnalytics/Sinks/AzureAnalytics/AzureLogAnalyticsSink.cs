@@ -45,7 +45,7 @@ namespace Serilog.Sinks
             string logName,
             bool storeTimestampInUtc,
             IFormatProvider formatProvider,
-            int logBufferSize = 2000,
+            int logBufferSize = 25_000,
             int batchSize = 100): base(batchSize, logBufferSize)
         {
             _workSpaceId = workSpaceId;

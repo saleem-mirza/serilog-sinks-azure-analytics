@@ -25,7 +25,7 @@ This sink accepts following optional configuration parameters for fine grained c
 
 > `formatProvider`: Supplies an object that provides formatting information for formatting and parsing operations.
 
-> `logBufferSize`: Maximum number of log entries this sink can hold before stop accepting log messages. Default is 2000, acceptable range is between 1000 to 25000.
+> `logBufferSize`: Maximum number of log entries this sink can hold before stop accepting log messages. Default is 25000, acceptable range is between 5000 to 100000.
 
 > `batchSize`: Number of log messages to be sent as batch. Default 100, acceptable range is between 1 and 1000
 
