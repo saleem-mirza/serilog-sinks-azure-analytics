@@ -15,7 +15,7 @@ Configure logger by calling `WriteTo.AzureLogAnalytics(<workspaceId>, <authentic
 >
 > `authenticationId`: Primary or Secondary key from Azure OMS Portal connected sources.
 
-This sink do accept following optional configuration parameters for fine grained control.
+This sink accepts following optional configuration parameters for fine grained control.
 
 > `logName`: A distinguishable log type name. Default is "DiagnosticsLog"
 
@@ -27,7 +27,7 @@ This sink do accept following optional configuration parameters for fine grained
 
 > `logBufferSize`: Maximum number of log entries this sink can hold before stop accepting log messages. Default is 2000, acceptable range is between 1000 to 25000.
 
-> `batchSize`: >Number of log messages to be sent as batch. Default 100, acceptable range is between 1 and 1000
+> `batchSize`: Number of log messages to be sent as batch. Default 100, acceptable range is between 1 and 1000
 
 ```C#
 var logger = new LoggerConfiguration()
