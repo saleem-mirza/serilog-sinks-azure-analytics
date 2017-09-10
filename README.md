@@ -1,5 +1,5 @@
 # Serilog.Sinks.AzureAnalytics
-A Serilog sink that writes to Azure Log Analytics.
+High performance Serilog sink that writes to Azure Log Analytics. Sink do support automatic batching of log messages for better performance and auto-recovery from transient errors.
 
 
 ## Getting started
@@ -14,6 +14,20 @@ Configure logger by calling `WriteTo.AzureLogAnalytics(<workspaceId>, <authentic
 > `workspaceId`: Workspace Id from Azure OMS Portal connected sources.
 >
 > `authenticationId`: Primary or Secondary key from Azure OMS Portal connected sources.
+
+This sink accepts following optional configuration parameters for fine grained control.
+
+> `logName`: A distinguishable log type name. Default is "DiagnosticsLog"
+
+> `restrictedToMinimumLevel`: The minimum log event level required in order to write an event to the sink.
+
+> `storeTimestampInUtc`: Flag dictating if timestamp to be stored in UTC or local timezone format.
+
+> `formatProvider`: Supplies an object that provides formatting information for formatting and parsing operations.
+
+> `logBufferSize`: Maximum number of log entries this sink can hold before stop accepting log messages. Default is 25000, acceptable range is between 5000 to 100000.
+
+> `batchSize`: Number of log messages to be sent as batch. Default 100, acceptable range is between 1 and 1000
 
 ```C#
 var logger = new LoggerConfiguration()

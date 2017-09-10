@@ -14,6 +14,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -43,7 +44,9 @@ namespace Serilog.Sinks
             string authenticationId,
             string logName,
             bool storeTimestampInUtc,
-            IFormatProvider formatProvider) : base(nThreads: 2)
+            IFormatProvider formatProvider,
+            int logBufferSize = 25_000,
+            int batchSize = 100): base(batchSize, logBufferSize)
         {
             _workSpaceId = workSpaceId;
             _authenticationId = authenticationId;
@@ -64,10 +67,10 @@ namespace Serilog.Sinks
 
         #endregion
 
-        protected override void WriteLogEvent(ICollection<LogEvent> logEventsBatch)
+        protected override async Task<bool> WriteLogEventAsync(ICollection<LogEvent> logEventsBatch)
         {
             if ((logEventsBatch == null) || (logEventsBatch.Count == 0))
-                return;
+                return true;
 
             var logEventsJson = new StringBuilder();
 
@@ -99,12 +102,13 @@ namespace Serilog.Sinks
             var hashedString = BuildSignature(stringToHash, _authenticationId);
             var signature = "SharedKey " + _workSpaceId + ":" + hashedString;
 
-            PostData(signature, dateString, logEventsJson.ToString()).Wait();
+            var result = await PostDataAsync(signature, dateString, logEventsJson.ToString()).ConfigureAwait(false);
+            return result == "OK";
         }
 
         private static string BuildSignature(string message, string secret)
         {
-            var encoding = new ASCIIEncoding();
+            var encoding = new UTF8Encoding();
             var keyByte = Convert.FromBase64String(secret);
             var messageBytes = encoding.GetBytes(message);
             using (var hmacsha256 = new HMACSHA256(keyByte))
@@ -114,21 +118,31 @@ namespace Serilog.Sinks
             }
         }
 
-        private async Task PostData(string signature, string dateString, string jsonString)
+        private async Task<string> PostDataAsync(string signature, string dateString, string jsonString)
         {
-            using (var client = new HttpClient())
+            try
             {
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-                client.DefaultRequestHeaders.Add("Log-Type", _logName);
-                client.DefaultRequestHeaders.Add("Authorization", signature);
-                client.DefaultRequestHeaders.Add("x-ms-date", dateString);
-                client.DefaultRequestHeaders.Add("time-generated-field", "");
+                using (var client = new HttpClient())
+                {
+                    client.DefaultRequestHeaders.Add("Accept", "application/json");
+                    client.DefaultRequestHeaders.Add("Log-Type", _logName);
+                    client.DefaultRequestHeaders.Add("Authorization", signature);
+                    client.DefaultRequestHeaders.Add("x-ms-date", dateString);
+                    client.DefaultRequestHeaders.Add("time-generated-field", "");
 
-                var httpContent = new StringContent(jsonString, Encoding.UTF8);
-                httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-                var response = await client.PostAsync(_analyticsUrl, httpContent);
-                
-                SelfLog.WriteLine(response.ReasonPhrase);
+                    var httpContent = new StringContent(jsonString, Encoding.UTF8);
+                    httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                    var response = await client.PostAsync(_analyticsUrl, httpContent)
+                        .ConfigureAwait(true);
+
+                    SelfLog.WriteLine(response.ReasonPhrase);
+                    return response.ReasonPhrase;
+                }
+            }
+            catch (Exception ex)
+            {
+                SelfLog.WriteLine("ERROR: " + (ex.InnerException??ex).Message);
+                return "FAILED";
             }
         }
     }
