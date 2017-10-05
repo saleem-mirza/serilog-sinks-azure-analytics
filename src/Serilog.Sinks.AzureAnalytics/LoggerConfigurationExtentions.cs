@@ -33,6 +33,7 @@ namespace Serilog
         ///     Primary or Secondary key from Azure OMS Portal connected sources.
         /// </param>
         /// <param name="logName">A distinguishable log type name. Default is "DiagnosticsLog"</param>
+        /// <param name="urlSuffix">The top level domain of the Azure Analytics account. Default is ".com"</param>
         /// <param name="restrictedToMinimumLevel">The minimum log event level required in order to write an event to the sink.</param>
         /// <param name="storeTimestampInUtc">Flag dictating if timestamp to be stored in UTC or local timezone format.</param>
         /// <param name="formatProvider">
@@ -47,6 +48,7 @@ namespace Serilog
             string workspaceId,
             string authenticationId,
             string logName = "DiagnosticsLog",
+            string urlSuffix = ".com",
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             bool storeTimestampInUtc = true,
             IFormatProvider formatProvider = null,
@@ -60,6 +62,7 @@ namespace Serilog
                     workspaceId,
                     authenticationId,
                     logName,
+                    urlSuffix,
                     storeTimestampInUtc,
                     formatProvider,
                     logBufferSize,
