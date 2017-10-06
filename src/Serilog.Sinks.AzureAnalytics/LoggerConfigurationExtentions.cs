@@ -33,7 +33,6 @@ namespace Serilog
         ///     Primary or Secondary key from Azure OMS Portal connected sources.
         /// </param>
         /// <param name="logName">A distinguishable log type name. Default is "DiagnosticsLog"</param>
-        /// <param name="urlSuffix">The top level domain of the Azure Analytics account. Default is ".com"</param>
         /// <param name="restrictedToMinimumLevel">The minimum log event level required in order to write an event to the sink.</param>
         /// <param name="storeTimestampInUtc">Flag dictating if timestamp to be stored in UTC or local timezone format.</param>
         /// <param name="formatProvider">
@@ -42,18 +41,19 @@ namespace Serilog
         /// </param>
         /// <param name="logBufferSize">Maximum number of log entries this sink can hold before stop accepting log messages. Supported size is between 5000 and 25000</param>
         /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
+        /// <param name="urlSuffix">The top level domain of the Azure Analytics account. Default is ".com"</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         public static LoggerConfiguration AzureLogAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
             string workspaceId,
             string authenticationId,
             string logName = "DiagnosticsLog",
-            string urlSuffix = ".com",
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             bool storeTimestampInUtc = true,
             IFormatProvider formatProvider = null,
             int logBufferSize = 2000,
-            int batchSize = 100)
+            int batchSize = 100,
+            string urlSuffix = ".com")
         {
             if (string.IsNullOrEmpty(workspaceId)) throw new ArgumentNullException(nameof(workspaceId));
             if (string.IsNullOrEmpty(authenticationId)) throw new ArgumentNullException(nameof(authenticationId));
