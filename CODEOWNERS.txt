@@ -1,0 +1,7 @@
+# See https://help.github.com/articles/about-codeowners/ for details on this file.
+
+
+
+# Global code owners.
+
+*   @cognosticator @gregmcguffey

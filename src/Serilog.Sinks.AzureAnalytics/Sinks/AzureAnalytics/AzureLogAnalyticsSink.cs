@@ -43,6 +43,7 @@ namespace Serilog.Sinks
             string workSpaceId,
             string authenticationId,
             string logName,
+            string urlSuffix,
             bool storeTimestampInUtc,
             IFormatProvider formatProvider,
             int logBufferSize = 25_000,
@@ -55,7 +56,7 @@ namespace Serilog.Sinks
             _formatProvider = formatProvider;
 
             _analyticsUrl =
-                new Uri("https://" + _workSpaceId + ".ods.opinsights.azure.com/api/logs?api-version=2016-04-01");
+                new Uri("https://" + _workSpaceId + ".ods.opinsights.azure" + urlSuffix + "/api/logs?api-version=2016-04-01");
         }
 
         #region ILogEvent implementation
