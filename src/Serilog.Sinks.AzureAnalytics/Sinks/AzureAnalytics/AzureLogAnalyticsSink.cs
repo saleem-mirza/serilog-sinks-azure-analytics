@@ -136,7 +136,7 @@ namespace Serilog.Sinks
                     var response = await client.PostAsync(_analyticsUrl, httpContent)
                         .ConfigureAwait(true);
 
-                    SelfLog.WriteLine(response.ReasonPhrase);
+                    SelfLog.WriteLine("Posted Log Message: " + response.ReasonPhrase);
                     return response.ReasonPhrase;
                 }
             }
