@@ -1,1 +1,1 @@
-& dotnet nuget push .\artifacts\Serilog.Sinks.AzureAnalytics.2.1.0-*.nupkg -s https://proget.dev.cognosante.cc/nuget/Lab/ -k 'cpowell:nadir-gloat-ncr'
+& dotnet nuget push .\artifacts\Serilog.Sinks.AzureAnalytics.2.1.0-*.symbols.nupkg -s https://proget.dev.cognosante.cc/nuget/Lab/ -k 'cpowell:nadir-gloat-ncr' 
