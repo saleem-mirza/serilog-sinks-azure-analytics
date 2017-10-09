@@ -12,7 +12,7 @@ $branch = @{ $true = $env:APPVEYOR_REPO_BRANCH; $false = $(git symbolic-ref --sh
 $revision = @{ $true = "{0:00000}" -f [convert]::ToInt32("0" + $env:APPVEYOR_BUILD_NUMBER, 10); $false = "local" }[$env:APPVEYOR_BUILD_NUMBER -ne $NULL];
 $suffix = @{ $true = ""; $false = "$($branch.Substring(0, [math]::Min(10,$branch.Length)))-$revision"}[$branch -eq "master" -and $revision -ne "local"]
 
-$suffix = "cognosante-002"
+$suffix = "cognosante-003"
 Write-Output "build: Version suffix is $suffix"
 
 & dotnet pack -c Release -o ..\..\artifacts --version-suffix=$suffix
