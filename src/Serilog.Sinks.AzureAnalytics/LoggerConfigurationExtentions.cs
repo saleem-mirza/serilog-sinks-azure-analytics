@@ -57,6 +57,7 @@ namespace Serilog
         {
             if (string.IsNullOrEmpty(workspaceId)) throw new ArgumentNullException(nameof(workspaceId));
             if (string.IsNullOrEmpty(authenticationId)) throw new ArgumentNullException(nameof(authenticationId));
+            if (string.IsNullOrEmpty(urlSuffix)) throw new ArgumentNullException(nameof(urlSuffix));
             return loggerConfiguration.Sink(
                 new AzureLogAnalyticsSink(
                     workspaceId,
