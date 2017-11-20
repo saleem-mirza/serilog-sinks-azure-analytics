@@ -14,7 +14,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -72,7 +71,7 @@ namespace Serilog.Sinks
             if ((logEventsBatch == null) || (logEventsBatch.Count == 0))
                 return true;
 
-            var logEventsJson = new StringBuilder();
+            var logEventJsonBuilder = new StringBuilder();
 
             foreach (var logEvent in logEventsBatch)
             {
@@ -83,38 +82,46 @@ namespace Serilog.Sinks
                                 _formatProvider))
                         .Flaten());
 
-                logEventsJson.Append(jsonString);
-                logEventsJson.Append(",");
+                logEventJsonBuilder.Append(jsonString);
+                logEventJsonBuilder.Append(",");
             }
 
-            if (logEventsJson.Length > 0)
-                logEventsJson.Remove(logEventsJson.Length - 1, 1);
+            if (logEventJsonBuilder.Length > 0)
+                logEventJsonBuilder.Remove(logEventJsonBuilder.Length - 1, 1);
 
             if (logEventsBatch.Count > 1)
             {
-                logEventsJson.Insert(0, "[");
-                logEventsJson.Append("]");
+                logEventJsonBuilder.Insert(0, "[");
+                logEventJsonBuilder.Append("]");
             }
 
+            var logEventJsonString = logEventJsonBuilder.ToString();
+            var contentLength = Encoding.UTF8.GetByteCount(logEventJsonString);
+
             var dateString = DateTime.UtcNow.ToString("r");
-            var stringToHash = "POST\n" + logEventsJson.Length + "\napplication/json\n" + "x-ms-date:" + dateString +
-                               "\n/api/logs";
-            var hashedString = BuildSignature(stringToHash, _authenticationId);
+            var hashedString = BuildSignature(contentLength, dateString, _authenticationId);
             var signature = "SharedKey " + _workSpaceId + ":" + hashedString;
 
-            var result = await PostDataAsync(signature, dateString, logEventsJson.ToString()).ConfigureAwait(false);
+            var result = await PostDataAsync(signature, dateString, logEventJsonString)
+                .ConfigureAwait(true);
             return result == "OK";
         }
 
-        private static string BuildSignature(string message, string secret)
+        private static string BuildSignature(int contentLength, string dateString, string key)
         {
+            var stringToHash =
+                "POST\n" +
+                contentLength +
+                "\napplication/json\n" +
+                "x-ms-date:" + dateString +
+                "\n/api/logs";
+
             var encoding = new UTF8Encoding();
-            var keyByte = Convert.FromBase64String(secret);
-            var messageBytes = encoding.GetBytes(message);
+            var keyByte = Convert.FromBase64String(key);
+            var messageBytes = encoding.GetBytes(stringToHash);
             using (var hmacsha256 = new HMACSHA256(keyByte))
             {
-                var hash = hmacsha256.ComputeHash(messageBytes);
-                return Convert.ToBase64String(hash);
+                return Convert.ToBase64String(hmacsha256.ComputeHash(messageBytes));
             }
         }
 
@@ -124,18 +131,20 @@ namespace Serilog.Sinks
             {
                 using (var client = new HttpClient())
                 {
-                    client.DefaultRequestHeaders.Add("Accept", "application/json");
-                    client.DefaultRequestHeaders.Add("Log-Type", _logName);
+                    client.DefaultRequestHeaders.Clear();
                     client.DefaultRequestHeaders.Add("Authorization", signature);
                     client.DefaultRequestHeaders.Add("x-ms-date", dateString);
-                    client.DefaultRequestHeaders.Add("time-generated-field", "");
 
-                    var httpContent = new StringContent(jsonString, Encoding.UTF8);
-                    httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-                    var response = await client.PostAsync(_analyticsUrl, httpContent)
-                        .ConfigureAwait(true);
+                    var stringContent = new StringContent(jsonString);
+                    stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
+                    stringContent.Headers.Add("Log-Type", _logName);
+                    var response = client.PostAsync(_analyticsUrl, stringContent)
+                        .Result;
 
-                    SelfLog.WriteLine(response.ReasonPhrase);
+                    var message = await response.Content.ReadAsStringAsync()
+                        .ConfigureAwait(false);
+
+                    SelfLog.WriteLine("{0}: {1}", response.ReasonPhrase, message);               
                     return response.ReasonPhrase;
                 }
             }
