@@ -42,7 +42,52 @@ namespace Serilog
         /// <param name="logBufferSize">Maximum number of log entries this sink can hold before stop accepting log messages. Supported size is between 5000 and 25000</param>
         /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
+
+        [Obsolete("This interface is obsolete and may get removed in future release. Please consider using AzureAnalytics", false)]
         public static LoggerConfiguration AzureLogAnalytics(
+            this LoggerSinkConfiguration loggerConfiguration,
+            string workspaceId,
+            string authenticationId,
+            string logName = "DiagnosticsLog",
+            LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
+            bool storeTimestampInUtc = true,
+            IFormatProvider formatProvider = null,
+            int logBufferSize = 2000,
+            int batchSize = 100)
+        {
+            if (string.IsNullOrEmpty(workspaceId)) throw new ArgumentNullException(nameof(workspaceId));
+            if (string.IsNullOrEmpty(authenticationId)) throw new ArgumentNullException(nameof(authenticationId));
+            return loggerConfiguration.Sink(
+                new AzureLogAnalyticsSink(
+                    workspaceId,
+                    authenticationId,
+                    logName,
+                    storeTimestampInUtc,
+                    formatProvider,
+                    logBufferSize,
+                    batchSize),
+                restrictedToMinimumLevel);
+        }
+
+        /// <summary>
+        ///     Adds a sink that writes log events to a Azure Log Analytics.
+        /// </summary>
+        /// <param name="loggerConfiguration">The logger configuration.</param>
+        /// <param name="workspaceId">Workspace Id from Azure OMS Portal connected sources.</param>
+        /// <param name="authenticationId">
+        ///     Primary or Secondary key from Azure OMS Portal connected sources.
+        /// </param>
+        /// <param name="logName">A distinguishable log type name. Default is "DiagnosticsLog"</param>
+        /// <param name="restrictedToMinimumLevel">The minimum log event level required in order to write an event to the sink.</param>
+        /// <param name="storeTimestampInUtc">Flag dictating if timestamp to be stored in UTC or local timezone format.</param>
+        /// <param name="formatProvider">
+        ///     Supplies an object that provides formatting information for formatting and parsing
+        ///     operations
+        /// </param>
+        /// <param name="logBufferSize">Maximum number of log entries this sink can hold before stop accepting log messages. Supported size is between 5000 and 25000</param>
+        /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
+        /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
+        public static LoggerConfiguration AzureAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
             string workspaceId,
             string authenticationId,
