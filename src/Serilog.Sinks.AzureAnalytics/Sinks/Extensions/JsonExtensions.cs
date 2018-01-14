@@ -55,12 +55,7 @@ namespace Serilog.Sinks.Extensions
                         FlatenJToken(dict, prop.Value, Join(prefix, prop.Name));
                     break;
                 case JTokenType.Array:
-                    var index = 0;
-                    foreach (var value in token.Children())
-                    {
-                        FlatenJToken(dict, value, Join(prefix, index.ToString()));
-                        index++;
-                    }
+                    dict.Add(prefix, token);
                     break;
                 default:
                     dict.Add(prefix, ((JValue) token).Value);
