@@ -1,4 +1,4 @@
-﻿// Copyright 2016 Zethian Inc.
+﻿// Copyright 2018 Zethian Inc.
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,38 +25,37 @@ namespace Serilog.Sinks.Batch
 {
     internal abstract class BatchProvider : IDisposable
     {
-        private const int MaxSupportedBufferSize = 100_000;
-        private const int MaxSupportedBatchSize = 1_000;
-        private int _numMessages;
-        private bool _canStop;
-
-        private readonly int _maxBufferSize;
-        private readonly int _batchSize;
+        private const    int  MaxSupportedBufferSize = 100_000;
+        private const    int  MaxSupportedBatchSize  = 1_000;
+        private          int  _numMessages;
+        private          bool _canStop;
+        private readonly int  _maxBufferSize;
+        private readonly int  _batchSize;
         private readonly CancellationTokenSource _cancellationToken = new CancellationTokenSource();
         private readonly CancellationTokenSource _eventCancellationToken = new CancellationTokenSource();
         private readonly ConcurrentQueue<LogEvent> _logEventBatch;
         private readonly BlockingCollection<IList<LogEvent>> _batchEventsCollection;
         private readonly BlockingCollection<LogEvent> _eventsCollection;
-        private readonly TimeSpan _thresholdTimeSpan = TimeSpan.FromSeconds(10);
-        private readonly AutoResetEvent _timerResetEvent = new AutoResetEvent(false);
-        private readonly Task _timerTask;
-        private readonly Task _batchTask;
-        private readonly Task _eventPumpTask;
-        private readonly List<Task> _workerTasks = new List<Task>();
-        private static SemaphoreSlim _semaphore;
+        private readonly TimeSpan       _thresholdTimeSpan = TimeSpan.FromSeconds(10);
+        private readonly AutoResetEvent _timerResetEvent   = new AutoResetEvent(false);
+        private readonly Task           _timerTask;
+        private readonly Task           _batchTask;
+        private readonly Task           _eventPumpTask;
+        private readonly List<Task>     _workerTasks = new List<Task>();
+        private static   SemaphoreSlim  _semaphore;
 
         protected BatchProvider(int batchSize = 100, int maxBufferSize = 25_000)
         {
             _semaphore = new SemaphoreSlim(Environment.ProcessorCount, Environment.ProcessorCount);
             _maxBufferSize = Math.Min(Math.Max(5_000, maxBufferSize), MaxSupportedBufferSize);
-            _batchSize = Math.Min(Math.Max(batchSize, 1), MaxSupportedBatchSize);
+            _batchSize     = Math.Min(Math.Max(batchSize, 1), MaxSupportedBatchSize);
 
-            _logEventBatch = new ConcurrentQueue<LogEvent>();
+            _logEventBatch         = new ConcurrentQueue<LogEvent>();
             _batchEventsCollection = new BlockingCollection<IList<LogEvent>>();
-            _eventsCollection = new BlockingCollection<LogEvent>(maxBufferSize);
+            _eventsCollection      = new BlockingCollection<LogEvent>(maxBufferSize);
 
-            _batchTask = Task.Factory.StartNew(Pump, TaskCreationOptions.LongRunning);
-            _timerTask = Task.Factory.StartNew(TimerPump, TaskCreationOptions.LongRunning);
+            _batchTask     = Task.Factory.StartNew(Pump, TaskCreationOptions.LongRunning);
+            _timerTask     = Task.Factory.StartNew(TimerPump, TaskCreationOptions.LongRunning);
             _eventPumpTask = Task.Factory.StartNew(EventPump, TaskCreationOptions.LongRunning);
         }
 

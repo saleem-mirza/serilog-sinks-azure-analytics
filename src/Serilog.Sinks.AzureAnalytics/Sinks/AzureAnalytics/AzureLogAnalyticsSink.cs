@@ -1,4 +1,4 @@
-﻿// Copyright 2016 Zethian Inc.
+﻿// Copyright 2018 Zethian Inc.
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ using Newtonsoft.Json.Linq;
 using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;
+using Serilog.Sinks.AzureAnalytics;
 using Serilog.Sinks.Batch;
 using Serilog.Sinks.Extensions;
 
@@ -31,31 +32,33 @@ namespace Serilog.Sinks
 {
     internal class AzureLogAnalyticsSink : BatchProvider, ILogEventSink
     {
-        private readonly Uri _analyticsUrl;
-        private readonly string _authenticationId;
+        private readonly Uri             _analyticsUrl;
+        private readonly string          _authenticationId;
         private readonly IFormatProvider _formatProvider;
-        private readonly string _logName;
-        private readonly bool _storeTimestampInUtc;
-        private readonly string _workSpaceId;
+        private readonly string          _logName;
+        private readonly bool            _storeTimestampInUtc;
+        private readonly string          _workSpaceId;
 
         internal AzureLogAnalyticsSink(
-            string workSpaceId,
-            string authenticationId,
-            string logName,
-            bool storeTimestampInUtc,
-            IFormatProvider formatProvider,
-            int logBufferSize = 25_000,
-            int batchSize = 100,
-            string urlSuffix = ".com"): base(batchSize, logBufferSize)
+            string            workSpaceId,
+            string            authenticationId,
+            string            logName,
+            bool              storeTimestampInUtc,
+            IFormatProvider   formatProvider,
+            int               logBufferSize     = 25_000,
+            int               batchSize         = 100,
+            AzureOfferingType azureOfferingType = AzureOfferingType.Public) : base(batchSize, logBufferSize)
         {
-            _workSpaceId = workSpaceId;
-            _authenticationId = authenticationId;
-            _logName = logName;
+            _workSpaceId         = workSpaceId;
+            _authenticationId    = authenticationId;
+            _logName             = logName;
             _storeTimestampInUtc = storeTimestampInUtc;
-            _formatProvider = formatProvider;
+            _formatProvider      = formatProvider;
 
+            var urlSuffix = azureOfferingType == AzureOfferingType.US_Government ? ".us" : ".com";
             _analyticsUrl =
-                new Uri("https://" + _workSpaceId + ".ods.opinsights.azure" + urlSuffix + "/api/logs?api-version=2016-04-01");
+                new Uri(
+                    $"https://{_workSpaceId}.ods.opinsights.azure{urlSuffix}/api/logs?api-version=2016-04-01");
         }
 
         #region ILogEvent implementation
@@ -101,7 +104,7 @@ namespace Serilog.Sinks
 
             var dateString = DateTime.UtcNow.ToString("r");
             var hashedString = BuildSignature(contentLength, dateString, _authenticationId);
-            var signature = "SharedKey " + _workSpaceId + ":" + hashedString;
+            var signature = $"SharedKey {_workSpaceId}:{hashedString}";
 
             var result = await PostDataAsync(signature, dateString, logEventJsonString)
                 .ConfigureAwait(true);

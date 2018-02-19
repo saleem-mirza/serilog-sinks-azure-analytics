@@ -1,4 +1,4 @@
-﻿// Copyright 2016 Zethian Inc.
+﻿// Copyright 2018 Zethian Inc.
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@ using System;
 using Serilog.Configuration;
 using Serilog.Events;
 using Serilog.Sinks;
+using Serilog.Sinks.AzureAnalytics;
 
 namespace Serilog
 {
@@ -41,25 +42,24 @@ namespace Serilog
         /// </param>
         /// <param name="logBufferSize">Maximum number of log entries this sink can hold before stop accepting log messages. Supported size is between 5000 and 25000</param>
         /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
-        /// <param name="urlSuffix">Azure endpoint suffix. Default is ".com"</param>
+        /// <param name="azureOfferingType">Azure offering type for public or goventment. Default is AzureOfferingType.Public</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
 
         [Obsolete("This interface is obsolete and may get removed in future release. Please consider using AzureAnalytics", false)]
         public static LoggerConfiguration AzureLogAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
-            string workspaceId,
-            string authenticationId,
-            string logName = "DiagnosticsLog",
-            LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
-            bool storeTimestampInUtc = true,
-            IFormatProvider formatProvider = null,
-            int logBufferSize = 2000,
-            int batchSize = 100,
-            string urlSuffix = ".com")
+            string            workspaceId,
+            string            authenticationId,
+            string            logName                  = "DiagnosticsLog",
+            LogEventLevel     restrictedToMinimumLevel = LevelAlias.Minimum,
+            bool              storeTimestampInUtc      = true,
+            IFormatProvider   formatProvider           = null,
+            int               logBufferSize            = 2000,
+            int               batchSize                = 100,
+            AzureOfferingType azureOfferingType        = AzureOfferingType.Public)
         {
             if (string.IsNullOrEmpty(workspaceId)) throw new ArgumentNullException(nameof(workspaceId));
             if (string.IsNullOrEmpty(authenticationId)) throw new ArgumentNullException(nameof(authenticationId));
-            if (string.IsNullOrEmpty(urlSuffix)) throw new ArgumentNullException(nameof(urlSuffix));
             return loggerConfiguration.Sink(
                 new AzureLogAnalyticsSink(
                     workspaceId,
@@ -69,7 +69,7 @@ namespace Serilog
                     formatProvider,
                     logBufferSize,
                     batchSize,
-                    urlSuffix),
+                    azureOfferingType),
                 restrictedToMinimumLevel);
         }
 
@@ -90,22 +90,25 @@ namespace Serilog
         /// </param>
         /// <param name="logBufferSize">Maximum number of log entries this sink can hold before stop accepting log messages. Supported size is between 5000 and 25000</param>
         /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
-        /// <param name="urlSuffix">Azure endpoint suffix. Default is ".com"</param>
+        /// <param name="azureOfferingType">Azure offering type for public or goventment. Default is AzureOfferingType.Public</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         public static LoggerConfiguration AzureAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
-            string workspaceId,
-            string authenticationId,
-            string logName = "DiagnosticsLog",
-            LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
-            bool storeTimestampInUtc = true,
-            IFormatProvider formatProvider = null,
-            int logBufferSize = 2000,
-            int batchSize = 100,
-            string urlSuffix = ".com")
+            string            workspaceId,
+            string            authenticationId,
+            string            logName                  = "DiagnosticsLog",
+            LogEventLevel     restrictedToMinimumLevel = LevelAlias.Minimum,
+            bool              storeTimestampInUtc      = true,
+            IFormatProvider   formatProvider           = null,
+            int               logBufferSize            = 2000,
+            int               batchSize                = 100,
+            AzureOfferingType azureOfferingType        = AzureOfferingType.Public)
         {
-            if (string.IsNullOrEmpty(workspaceId)) throw new ArgumentNullException(nameof(workspaceId));
-            if (string.IsNullOrEmpty(authenticationId)) throw new ArgumentNullException(nameof(authenticationId));
+            if (string.IsNullOrEmpty(workspaceId))
+                throw new ArgumentNullException(nameof(workspaceId));
+            if (string.IsNullOrEmpty(authenticationId))
+                throw new ArgumentNullException(nameof(authenticationId));
+
             return loggerConfiguration.Sink(
                 new AzureLogAnalyticsSink(
                     workspaceId,
@@ -115,7 +118,7 @@ namespace Serilog
                     formatProvider,
                     logBufferSize,
                     batchSize,
-                    urlSuffix),
+                    azureOfferingType),
                 restrictedToMinimumLevel);
         }
     }
