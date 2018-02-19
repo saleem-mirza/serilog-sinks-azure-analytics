@@ -41,6 +41,7 @@ namespace Serilog
         /// </param>
         /// <param name="logBufferSize">Maximum number of log entries this sink can hold before stop accepting log messages. Supported size is between 5000 and 25000</param>
         /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
+        /// <param name="urlSuffix">Azure endpoint suffix. Default is ".com"</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
 
         [Obsolete("This interface is obsolete and may get removed in future release. Please consider using AzureAnalytics", false)]
@@ -53,10 +54,12 @@ namespace Serilog
             bool storeTimestampInUtc = true,
             IFormatProvider formatProvider = null,
             int logBufferSize = 2000,
-            int batchSize = 100)
+            int batchSize = 100,
+            string urlSuffix = ".com")
         {
             if (string.IsNullOrEmpty(workspaceId)) throw new ArgumentNullException(nameof(workspaceId));
             if (string.IsNullOrEmpty(authenticationId)) throw new ArgumentNullException(nameof(authenticationId));
+            if (string.IsNullOrEmpty(urlSuffix)) throw new ArgumentNullException(nameof(urlSuffix));
             return loggerConfiguration.Sink(
                 new AzureLogAnalyticsSink(
                     workspaceId,
@@ -65,7 +68,8 @@ namespace Serilog
                     storeTimestampInUtc,
                     formatProvider,
                     logBufferSize,
-                    batchSize),
+                    batchSize,
+                    urlSuffix),
                 restrictedToMinimumLevel);
         }
 
@@ -86,6 +90,7 @@ namespace Serilog
         /// </param>
         /// <param name="logBufferSize">Maximum number of log entries this sink can hold before stop accepting log messages. Supported size is between 5000 and 25000</param>
         /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
+        /// <param name="urlSuffix">Azure endpoint suffix. Default is ".com"</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         public static LoggerConfiguration AzureAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
@@ -96,7 +101,8 @@ namespace Serilog
             bool storeTimestampInUtc = true,
             IFormatProvider formatProvider = null,
             int logBufferSize = 2000,
-            int batchSize = 100)
+            int batchSize = 100,
+            string urlSuffix = ".com")
         {
             if (string.IsNullOrEmpty(workspaceId)) throw new ArgumentNullException(nameof(workspaceId));
             if (string.IsNullOrEmpty(authenticationId)) throw new ArgumentNullException(nameof(authenticationId));
@@ -108,7 +114,8 @@ namespace Serilog
                     storeTimestampInUtc,
                     formatProvider,
                     logBufferSize,
-                    batchSize),
+                    batchSize,
+                    urlSuffix),
                 restrictedToMinimumLevel);
         }
     }
