@@ -42,9 +42,8 @@ namespace Serilog
         /// </param>
         /// <param name="logBufferSize">Maximum number of log entries this sink can hold before stop accepting log messages. Supported size is between 5000 and 25000</param>
         /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
-        /// <param name="azureOfferingType">Azure offering type for public or goventment. Default is AzureOfferingType.Public</param>
+        /// <param name="azureOfferingType">Azure offering type for public or government. Default is AzureOfferingType.Public</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
-
         [Obsolete("This interface is obsolete and may get removed in future release. Please consider using AzureAnalytics", false)]
         public static LoggerConfiguration AzureLogAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
@@ -90,7 +89,7 @@ namespace Serilog
         /// </param>
         /// <param name="logBufferSize">Maximum number of log entries this sink can hold before stop accepting log messages. Supported size is between 5000 and 25000</param>
         /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
-        /// <param name="azureOfferingType">Azure offering type for public or goventment. Default is AzureOfferingType.Public</param>
+        /// <param name="azureOfferingType">Azure offering type for public or government. Default is AzureOfferingType.Public</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         public static LoggerConfiguration AzureAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
