@@ -18,6 +18,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -32,12 +33,14 @@ namespace Serilog.Sinks
 {
     internal class AzureLogAnalyticsSink : BatchProvider, ILogEventSink
     {
+        private readonly SemaphoreSlim   _semaphore;
         private readonly Uri             _analyticsUrl;
         private readonly string          _authenticationId;
         private readonly IFormatProvider _formatProvider;
         private readonly string          _logName;
         private readonly bool            _storeTimestampInUtc;
         private readonly string          _workSpaceId;
+        private static   HttpClient      _client = new HttpClient();
 
         internal AzureLogAnalyticsSink(
             string            workSpaceId,
@@ -54,6 +57,7 @@ namespace Serilog.Sinks
             _logName             = logName;
             _storeTimestampInUtc = storeTimestampInUtc;
             _formatProvider      = formatProvider;
+            _semaphore           = new SemaphoreSlim(1, 1);
 
             var urlSuffix = azureOfferingType == AzureOfferingType.US_Government ? ".us" : ".com";
             _analyticsUrl =
@@ -120,8 +124,8 @@ namespace Serilog.Sinks
                 "x-ms-date:" + dateString +
                 "\n/api/logs";
 
-            var encoding = new UTF8Encoding();
-            var keyByte = Convert.FromBase64String(key);
+            var encoding     = new UTF8Encoding();
+            var keyByte      = Convert.FromBase64String(key);
             var messageBytes = encoding.GetBytes(stringToHash);
             using (var hmacsha256 = new HMACSHA256(keyByte))
             {
@@ -131,31 +135,33 @@ namespace Serilog.Sinks
 
         private async Task<string> PostDataAsync(string signature, string dateString, string jsonString)
         {
-            try
-            {
-                using (var client = new HttpClient())
-                {
-                    client.DefaultRequestHeaders.Clear();
-                    client.DefaultRequestHeaders.Add("Authorization", signature);
-                    client.DefaultRequestHeaders.Add("x-ms-date", dateString);
+            try {
+                await _semaphore.WaitAsync();
 
-                    var stringContent = new StringContent(jsonString);
-                    stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
-                    stringContent.Headers.Add("Log-Type", _logName);
-                    var response = client.PostAsync(_analyticsUrl, stringContent)
-                        .Result;
+                _client.DefaultRequestHeaders.Clear();
+                _client.DefaultRequestHeaders.Add("Authorization", signature);
+                _client.DefaultRequestHeaders.Add("x-ms-date", dateString);
 
-                    var message = await response.Content.ReadAsStringAsync()
-                        .ConfigureAwait(false);
+                var stringContent = new StringContent(jsonString);
+                stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
+                stringContent.Headers.Add("Log-Type", _logName);
 
-                    SelfLog.WriteLine("{0}: {1}", response.ReasonPhrase, message);               
-                    return response.ReasonPhrase;
-                }
+                var response = await _client.PostAsync(_analyticsUrl, stringContent)
+                                            .ConfigureAwait(false);
+                var message = await response.Content.ReadAsStringAsync()
+                                            .ConfigureAwait(false);
+
+                SelfLog.WriteLine("{0}: {1}", response.ReasonPhrase, message);
+
+                return response.ReasonPhrase;
             }
-            catch (Exception ex)
-            {
-                SelfLog.WriteLine("ERROR: " + (ex.InnerException??ex).Message);
+            catch (Exception ex) {
+                SelfLog.WriteLine("ERROR: " + (ex.InnerException ?? ex).Message);
+
                 return "FAILED";
+            }
+            finally {
+                _semaphore.Release();
             }
         }
     }
