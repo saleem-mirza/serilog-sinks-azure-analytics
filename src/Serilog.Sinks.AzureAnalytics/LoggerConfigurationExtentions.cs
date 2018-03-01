@@ -44,21 +44,26 @@ namespace Serilog
         /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
         /// <param name="azureOfferingType">Azure offering type for public or government. Default is AzureOfferingType.Public</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
-        [Obsolete("This interface is obsolete and may get removed in future release. Please consider using AzureAnalytics", false)]
+        [Obsolete(
+            "This interface is obsolete and may get removed in future release. Please consider using AzureAnalytics",
+            false)]
         public static LoggerConfiguration AzureLogAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
-            string            workspaceId,
-            string            authenticationId,
-            string            logName                  = "DiagnosticsLog",
-            LogEventLevel     restrictedToMinimumLevel = LevelAlias.Minimum,
-            bool              storeTimestampInUtc      = true,
-            IFormatProvider   formatProvider           = null,
-            int               logBufferSize            = 2000,
-            int               batchSize                = 100,
-            AzureOfferingType azureOfferingType        = AzureOfferingType.Public)
+            string workspaceId,
+            string authenticationId,
+            string logName = "DiagnosticsLog",
+            LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
+            bool storeTimestampInUtc = true,
+            IFormatProvider formatProvider = null,
+            int logBufferSize = 2000,
+            int batchSize = 100,
+            AzureOfferingType azureOfferingType = AzureOfferingType.Public)
         {
-            if (string.IsNullOrEmpty(workspaceId)) throw new ArgumentNullException(nameof(workspaceId));
-            if (string.IsNullOrEmpty(authenticationId)) throw new ArgumentNullException(nameof(authenticationId));
+            if (string.IsNullOrEmpty(workspaceId))
+                throw new ArgumentNullException(nameof(workspaceId));
+            if (string.IsNullOrEmpty(authenticationId))
+                throw new ArgumentNullException(nameof(authenticationId));
+
             return loggerConfiguration.Sink(
                 new AzureLogAnalyticsSink(
                     workspaceId,
@@ -93,15 +98,15 @@ namespace Serilog
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         public static LoggerConfiguration AzureAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
-            string            workspaceId,
-            string            authenticationId,
-            string            logName                  = "DiagnosticsLog",
-            LogEventLevel     restrictedToMinimumLevel = LevelAlias.Minimum,
-            bool              storeTimestampInUtc      = true,
-            IFormatProvider   formatProvider           = null,
-            int               logBufferSize            = 2000,
-            int               batchSize                = 100,
-            AzureOfferingType azureOfferingType        = AzureOfferingType.Public)
+            string workspaceId,
+            string authenticationId,
+            string logName = "DiagnosticsLog",
+            LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
+            bool storeTimestampInUtc = true,
+            IFormatProvider formatProvider = null,
+            int logBufferSize = 2000,
+            int batchSize = 100,
+            AzureOfferingType azureOfferingType = AzureOfferingType.Public)
         {
             if (string.IsNullOrEmpty(workspaceId))
                 throw new ArgumentNullException(nameof(workspaceId));
@@ -119,6 +124,30 @@ namespace Serilog
                     batchSize,
                     azureOfferingType),
                 restrictedToMinimumLevel);
+        }
+
+        /// <summary>
+        ///     Adds a sink that writes log events to a Azure Log Analytics.
+        /// </summary>
+        /// <param name="loggerConfiguration">The logger configuration.</param>
+        /// <param name="workspaceId">Workspace Id from Azure OMS Portal connected sources.</param>
+        /// <param name="authenticationId">
+        ///     Primary or Secondary key from Azure OMS Portal connected sources.
+        /// </param>
+        /// <param name="loggerSettings">Optional configuration settings for logger</param>
+        /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
+        public static LoggerConfiguration AzureAnalytics(
+            this LoggerSinkConfiguration loggerConfiguration,
+            string workspaceId,
+            string authenticationId,
+            ConfigurationSettings loggerSettings)
+        {
+            if (string.IsNullOrEmpty(workspaceId))
+                throw new ArgumentNullException(nameof(workspaceId));
+            if (string.IsNullOrEmpty(authenticationId))
+                throw new ArgumentNullException(nameof(authenticationId));
+
+            return loggerConfiguration.Sink(new AzureLogAnalyticsSink(workspaceId, authenticationId, loggerSettings));
         }
     }
 }

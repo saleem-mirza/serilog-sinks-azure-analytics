@@ -28,7 +28,8 @@ namespace Serilog.Sinks.Extensions
             return JsonConvert.SerializeObject(ConvertToDictionary(logEvent, storeTimestampInUtc));
         }
 
-        internal static IDictionary<string, object> Dictionary(this LogEvent logEvent,
+        internal static IDictionary<string, object> Dictionary(
+            this LogEvent logEvent,
             bool storeTimestampInUtc = false,
             IFormatProvider formatProvider = null)
         {
@@ -53,17 +54,21 @@ namespace Serilog.Sinks.Extensions
             var expObject = new ExpandoObject() as IDictionary<string, object>;
             foreach (var property in properties)
                 expObject.Add(property.Key, Simplify(property.Value));
+
             return expObject;
         }
 
-        private static dynamic ConvertToDictionary(LogEvent logEvent,
+        private static dynamic ConvertToDictionary(
+            LogEvent logEvent,
             bool storeTimestampInUtc,
             IFormatProvider formatProvider = null)
         {
             var eventObject = new ExpandoObject() as IDictionary<string, object>;
-            eventObject.Add("Timestamp", storeTimestampInUtc
-                ? logEvent.Timestamp.ToUniversalTime().ToString("o")
-                : logEvent.Timestamp.ToString("o"));
+            eventObject.Add(
+                "Timestamp",
+                storeTimestampInUtc
+                    ? logEvent.Timestamp.ToUniversalTime().ToString("o")
+                    : logEvent.Timestamp.ToString("o"));
 
             eventObject.Add("LogLevel", logEvent.Level.ToString());
             eventObject.Add("LogMessage", logEvent.RenderMessage(formatProvider));
@@ -75,34 +80,28 @@ namespace Serilog.Sinks.Extensions
 
         private static object Simplify(LogEventPropertyValue data)
         {
-            var value = data as ScalarValue;
-            if (value != null)
+            if (data is ScalarValue value)
                 return value.Value;
 
             // ReSharper disable once SuspiciousTypeConversion.Global
-            var dictValue = data as DictionaryValue;
-            if (dictValue != null)
-            {
+            if (data is DictionaryValue dictValue) {
                 var expObject = new ExpandoObject() as IDictionary<string, object>;
-                foreach (var item in dictValue.Elements)
-                {
-                    var key = item.Key.Value as string;
-
-                    if(key != null)
+                foreach (var item in dictValue.Elements) {
+                    if (item.Key.Value is string key)
                         expObject.Add(key, Simplify(item.Value));
                 }
+
                 return expObject;
             }
 
-            var seq = data as SequenceValue;
-            if (seq != null)
+            if (data is SequenceValue seq)
                 return seq.Elements.Select(Simplify).ToArray();
 
-            var str = data as StructureValue;
-            if (str == null) return null;
+            if (!(data is StructureValue str))
+                return null;
+
             {
-                try
-                {
+                try {
                     if (str.TypeTag == null)
                         return str.Properties.ToDictionary(p => p.Name, p => Simplify(p.Value));
 
@@ -110,15 +109,16 @@ namespace Serilog.Sinks.Extensions
                         return str.Properties.ToDictionary(p => p.Name, p => Simplify(p.Value));
 
                     var key = Simplify(str.Properties[0].Value);
+
                     if (key == null)
                         return null;
 
                     var expObject = new ExpandoObject() as IDictionary<string, object>;
                     expObject.Add(key.ToString(), Simplify(str.Properties[1].Value));
+
                     return expObject;
                 }
-                catch (Exception ex)
-                {
+                catch (Exception ex) {
                     Console.WriteLine(ex.Message);
                 }
             }

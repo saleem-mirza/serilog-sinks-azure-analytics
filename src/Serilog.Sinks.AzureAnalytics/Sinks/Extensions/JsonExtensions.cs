@@ -48,17 +48,19 @@ namespace Serilog.Sinks.Extensions
 
         private static void FlatenJToken(IDictionary<string, object> dict, JToken token, string prefix)
         {
-            switch (token.Type)
-            {
+            switch (token.Type) {
                 case JTokenType.Object:
                     foreach (var prop in token.Children<JProperty>())
                         FlatenJToken(dict, prop.Value, Join(prefix, prop.Name));
+
                     break;
                 case JTokenType.Array:
                     dict.Add(prefix, token);
+
                     break;
                 default:
                     dict.Add(prefix, ((JValue) token).Value);
+
                     break;
             }
         }
