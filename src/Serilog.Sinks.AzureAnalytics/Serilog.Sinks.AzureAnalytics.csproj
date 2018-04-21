@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <AssemblyTitle>Serilog.Sinks.AzureAnalytics</AssemblyTitle>
         <Authors>Saleem Mirza</Authors>
@@ -11,28 +10,26 @@
         <PackageProjectUrl>http://serilog.net</PackageProjectUrl>
         <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
         <Copyright>Copyright © Zethian Inc. 2013-2018</Copyright>
-        <AssemblyVersion>2.3.0.0</AssemblyVersion>
-        <Version>2.3.0</Version>
+        <AssemblyVersion>3.0.0.0</AssemblyVersion>
+        <Version>3.0.0</Version>
         <SignAssembly>True</SignAssembly>
         <AssemblyOriginatorKeyFile>Serilog.snk</AssemblyOriginatorKeyFile>
-        <TargetFrameworks>netstandard1.3;net45</TargetFrameworks>
+        <TargetFrameworks>netstandard1.3;net452;netcoreapp2.0</TargetFrameworks>
         <RootNamespace>Serilog</RootNamespace>
     </PropertyGroup>
-
     <PropertyGroup Condition="'$(VersionSuffix)'!='' ">
         <Version>$(Version)-$(VersionSuffix)</Version>
     </PropertyGroup>
-
     <ItemGroup>
         <PackageReference Include="Serilog" Version="2.6.0" />
-        <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
+        <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     </ItemGroup>
-    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.3'">
+    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.3' OR '$(TargetFramework)' == 'netcoreapp2.0'">
         <PackageReference Include="System.Security.Cryptography.Algorithms">
             <Version>4.3.1</Version>
         </PackageReference>
     </ItemGroup>
-    <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
+    <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
         <Reference Include="System" />
         <Reference Include="Microsoft.CSharp" />
         <Reference Include="System.Net" />
@@ -41,5 +38,4 @@
     <ItemGroup>
         <Folder Include="Properties\" />
     </ItemGroup>
-
 </Project>
