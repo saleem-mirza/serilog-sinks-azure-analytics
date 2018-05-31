@@ -1,41 +1,41 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <AssemblyTitle>Serilog.Sinks.AzureAnalytics</AssemblyTitle>
-        <Authors>Saleem Mirza</Authors>
-        <AssemblyName>Serilog.Sinks.AzureAnalytics</AssemblyName>
-        <Description>Serilog event sink that writes to Azure Analytics</Description>
-        <PackageId>Serilog.Sinks.AzureAnalytics</PackageId>
-        <PackageTags>serilog;logging;Azure;Analytics</PackageTags>
-        <PackageIconUrl>http://serilog.net/images/serilog-sink-nuget.png</PackageIconUrl>
-        <PackageProjectUrl>http://serilog.net</PackageProjectUrl>
-        <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
-        <Copyright>Copyright © Zethian Inc. 2013-2018</Copyright>
-        <AssemblyVersion>3.0.0.0</AssemblyVersion>
-        <Version>3.0.0</Version>
-        <SignAssembly>True</SignAssembly>
-        <AssemblyOriginatorKeyFile>Serilog.snk</AssemblyOriginatorKeyFile>
-        <TargetFrameworks>netstandard1.3;net452;netcoreapp2.0</TargetFrameworks>
-        <RootNamespace>Serilog</RootNamespace>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(VersionSuffix)'!='' ">
-        <Version>$(Version)-$(VersionSuffix)</Version>
-    </PropertyGroup>
-    <ItemGroup>
-        <PackageReference Include="Serilog" Version="2.6.0" />
-        <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
-    </ItemGroup>
-    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.3' OR '$(TargetFramework)' == 'netcoreapp2.0'">
-        <PackageReference Include="System.Security.Cryptography.Algorithms">
-            <Version>4.3.1</Version>
-        </PackageReference>
-    </ItemGroup>
-    <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
-        <Reference Include="System" />
-        <Reference Include="Microsoft.CSharp" />
-        <Reference Include="System.Net" />
-        <Reference Include="System.Net.Http" />
-    </ItemGroup>
-    <ItemGroup>
-        <Folder Include="Properties\" />
-    </ItemGroup>
+  <PropertyGroup>
+    <AssemblyTitle>Serilog.Sinks.AzureAnalytics</AssemblyTitle>
+    <Authors>Saleem Mirza</Authors>
+    <AssemblyName>Serilog.Sinks.AzureAnalytics</AssemblyName>
+    <Description>Serilog event sink that writes to Azure Analytics</Description>
+    <PackageId>Serilog.Sinks.AzureAnalytics</PackageId>
+    <PackageTags>serilog;logging;Azure;Analytics</PackageTags>
+    <PackageIconUrl>http://serilog.net/images/serilog-sink-nuget.png</PackageIconUrl>
+    <PackageProjectUrl>http://serilog.net</PackageProjectUrl>
+    <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
+    <Copyright>Copyright © Zethian Inc. 2013-2018</Copyright>
+    <AssemblyVersion>3.1.0.0</AssemblyVersion>
+    <Version>3.1.0</Version>
+    <SignAssembly>True</SignAssembly>
+    <AssemblyOriginatorKeyFile>Serilog.snk</AssemblyOriginatorKeyFile>
+    <TargetFrameworks>netstandard1.3;net452;netcoreapp2.1</TargetFrameworks>
+    <RootNamespace>Serilog</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(VersionSuffix)'!='' ">
+    <Version>$(Version)-$(VersionSuffix)</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Serilog" Version="2.7.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.3' OR '$(TargetFramework)' == 'netcoreapp2.1'">
+    <PackageReference Include="Microsoft.CSharp" Version="4.5.0" />      
+    <PackageReference Include="System.Security.Cryptography.Algorithms">
+      <Version>4.3.1</Version>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net452'">
+    <Reference Include="System" />
+    <Reference Include="System.Net" />
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
 </Project>

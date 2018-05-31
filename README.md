@@ -64,3 +64,7 @@ In your application's App.config or Web.config file, specify the `AzureLogAnalyt
 
 ## Performance
 Sink buffers log internally and flush to Azure Log Analytics in batches using dedicated thread for better performance.
+
+---
+
+Many thanks to the [<img src="resources/jetbrains.svg" width="100px"/>](https://www.jetbrains.com "JetBrains") for donating awesome suite of tools making this project possible.
