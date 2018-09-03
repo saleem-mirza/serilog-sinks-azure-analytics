@@ -171,7 +171,7 @@ namespace Serilog.Sinks
 
             var result = await PostDataAsync(signature, dateString, logEventJsonString).ConfigureAwait(false);
 
-            return result == "OK";
+            return result;
         }
 
         private static string BuildSignature(int contentLength, string dateString, string key)
@@ -187,7 +187,7 @@ namespace Serilog.Sinks
             }
         }
 
-        private async Task<string> PostDataAsync(string signature, string dateString, string jsonString)
+        private async Task<bool> PostDataAsync(string signature, string dateString, string jsonString)
         {
             try {
                 await _semaphore.WaitAsync().ConfigureAwait(false);
@@ -205,12 +205,12 @@ namespace Serilog.Sinks
 
                 SelfLog.WriteLine("{0}: {1}", response.ReasonPhrase, message);
 
-                return response.ReasonPhrase;
+                return response.StatusCode == System.Net.HttpStatusCode.OK;
             }
             catch (Exception ex) {
                 SelfLog.WriteLine("ERROR: " + (ex.InnerException ?? ex).Message);
 
-                return "FAILED";
+                return false;
             }
             finally {
                 _semaphore.Release();
