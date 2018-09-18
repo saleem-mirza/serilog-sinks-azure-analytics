@@ -10,8 +10,8 @@
     <PackageProjectUrl>http://serilog.net</PackageProjectUrl>
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
     <Copyright>Copyright © Zethian Inc. 2013-2018</Copyright>
-    <AssemblyVersion>3.1.0.0</AssemblyVersion>
-    <Version>3.1.0</Version>
+    <AssemblyVersion>3.2.0.0</AssemblyVersion>
+    <Version>3.2.0</Version>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>Serilog.snk</AssemblyOriginatorKeyFile>
     <TargetFrameworks>netstandard1.3;netstandard2.0;net452;netcoreapp2.1</TargetFrameworks>
