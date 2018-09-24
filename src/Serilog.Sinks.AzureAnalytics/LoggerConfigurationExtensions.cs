@@ -14,6 +14,7 @@
 
 using System;
 using Serilog.Configuration;
+using Serilog.Core;
 using Serilog.Events;
 using Serilog.Sinks;
 using Serilog.Sinks.AzureAnalytics;
@@ -23,7 +24,7 @@ namespace Serilog
     /// <summary>
     ///     Adds the WriteTo.AzureLogAnalytics() extension method to <see cref="LoggerConfiguration" />.
     /// </summary>
-    public static class LoggerConfigurationExtentions
+    public static class LoggerConfigurationExtensions
     {
         /// <summary>
         ///     Adds a sink that writes log events to a Azure Log Analytics.
@@ -95,6 +96,9 @@ namespace Serilog
         /// <param name="logBufferSize">Maximum number of log entries this sink can hold before stop accepting log messages. Supported size is between 5000 and 25000</param>
         /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
         /// <param name="azureOfferingType">Azure offering type for public or government. Default is AzureOfferingType.Public</param>
+        /// <param name="levelSwitch">
+        /// A switch allowing the pass-through minimum level to be changed at runtime.
+        /// </param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         public static LoggerConfiguration AzureAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
@@ -106,7 +110,8 @@ namespace Serilog
             IFormatProvider formatProvider = null,
             int logBufferSize = 2000,
             int batchSize = 100,
-            AzureOfferingType azureOfferingType = AzureOfferingType.Public)
+            AzureOfferingType azureOfferingType = AzureOfferingType.Public,
+            LoggingLevelSwitch levelSwitch = null)
         {
             if (string.IsNullOrEmpty(workspaceId))
                 throw new ArgumentNullException(nameof(workspaceId));
@@ -123,7 +128,8 @@ namespace Serilog
                     logBufferSize,
                     batchSize,
                     azureOfferingType),
-                restrictedToMinimumLevel);
+                restrictedToMinimumLevel,
+                levelSwitch);
         }
 
         /// <summary>
@@ -135,19 +141,28 @@ namespace Serilog
         ///     Primary or Secondary key from Azure OMS Portal connected sources.
         /// </param>
         /// <param name="loggerSettings">Optional configuration settings for logger</param>
+        /// <param name="restrictedToMinimumLevel">The minimum log event level required in order to write an event to the sink.</param>
+        /// <param name="levelSwitch">
+        /// A switch allowing the pass-through minimum level to be changed at runtime.
+        /// </param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         public static LoggerConfiguration AzureAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
             string workspaceId,
             string authenticationId,
-            ConfigurationSettings loggerSettings)
+            ConfigurationSettings loggerSettings,
+            LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
+            LoggingLevelSwitch levelSwitch = null)
         {
             if (string.IsNullOrEmpty(workspaceId))
                 throw new ArgumentNullException(nameof(workspaceId));
             if (string.IsNullOrEmpty(authenticationId))
                 throw new ArgumentNullException(nameof(authenticationId));
 
-            return loggerConfiguration.Sink(new AzureLogAnalyticsSink(workspaceId, authenticationId, loggerSettings));
+            return loggerConfiguration.Sink(
+                new AzureLogAnalyticsSink(workspaceId, authenticationId, loggerSettings),
+                restrictedToMinimumLevel,
+                levelSwitch);
         }
     }
 }
