@@ -45,6 +45,7 @@ namespace Serilog.Sinks
         private readonly JsonSerializer _jsonSerializer;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
         private static readonly HttpClient Client = new HttpClient();
+        private static readonly int MaximumMessageSize = 32000000;
 
         internal AzureLogAnalyticsSink(string workSpaceId, string authenticationId, ConfigurationSettings settings) :
             base(settings.BatchSize, settings.BufferSize)
@@ -137,12 +138,19 @@ namespace Serilog.Sinks
 
         #endregion
 
+        private int GetStringSizeInBytes(int stringLength)
+        {
+            return sizeof(char) * stringLength;
+        }
+
         protected override async Task<bool> WriteLogEventAsync(ICollection<LogEvent> logEventsBatch)
         {
             if ((logEventsBatch == null) || (logEventsBatch.Count == 0))
                 return true;
 
             var logEventJsonBuilder = new StringBuilder();
+            var result = true;
+            var counter = 0;
 
             foreach (var logEvent in logEventsBatch) {
                 var jsonString = JsonConvert.SerializeObject(
@@ -150,28 +158,60 @@ namespace Serilog.Sinks
                            .Flaten(),
                     _jsonSerializerSettings);
 
+                if (GetStringSizeInBytes(jsonString.Length) >= MaximumMessageSize) {
+                    counter--;
+                    SelfLog.WriteLine("Log size is more than 32 MB. Consider sending smaller message");
+                    SelfLog.WriteLine("Dropping invalid message");
+                    continue;
+                }
+
+                if (GetStringSizeInBytes(logEventJsonBuilder.Length + jsonString.Length) > MaximumMessageSize) {
+
+                    SelfLog.WriteLine($"Sending mini batch of size {counter}");
+                    result = await SendLogMessage(logEventJsonBuilder);
+                    if (!result) {
+                        return false;
+                    }
+
+                    counter = 0;
+                    logEventJsonBuilder.Clear();
+                }
+                
                 logEventJsonBuilder.Append(jsonString);
                 logEventJsonBuilder.Append(",");
+                counter++;
             }
 
+            if (counter < logEventsBatch.Count) {
+                SelfLog.WriteLine($"Sending mini batch of size {counter}");
+            }
+
+            return result && await SendLogMessage(logEventJsonBuilder);;
+        }
+
+        private async Task<bool> SendLogMessage(StringBuilder logEventJsonBuilder)
+        {
             if (logEventJsonBuilder.Length > 0)
                 logEventJsonBuilder.Remove(logEventJsonBuilder.Length - 1, 1);
 
-            if (logEventsBatch.Count > 1) {
+            if (logEventJsonBuilder.Length > 0) {
                 logEventJsonBuilder.Insert(0, "[");
                 logEventJsonBuilder.Append("]");
+
+
+                var logEventJsonString = logEventJsonBuilder.ToString();
+                var contentLength = Encoding.UTF8.GetByteCount(logEventJsonString);
+
+                var dateString = DateTime.UtcNow.ToString("r");
+                var hashedString = BuildSignature(contentLength, dateString, _authenticationId);
+                var signature = $"SharedKey {_workSpaceId}:{hashedString}";
+
+                var result = await PostDataAsync(signature, dateString, logEventJsonString).ConfigureAwait(false);
+
+                return result;
             }
 
-            var logEventJsonString = logEventJsonBuilder.ToString();
-            var contentLength = Encoding.UTF8.GetByteCount(logEventJsonString);
-
-            var dateString = DateTime.UtcNow.ToString("r");
-            var hashedString = BuildSignature(contentLength, dateString, _authenticationId);
-            var signature = $"SharedKey {_workSpaceId}:{hashedString}";
-
-            var result = await PostDataAsync(signature, dateString, logEventJsonString).ConfigureAwait(false);
-
-            return result;
+            return false;
         }
 
         private static string BuildSignature(int contentLength, string dateString, string key)

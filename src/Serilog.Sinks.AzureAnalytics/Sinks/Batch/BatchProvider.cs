@@ -31,8 +31,8 @@ namespace Serilog.Sinks.Batch
         private bool _canStop;
         private readonly int _maxBufferSize;
         private readonly int _batchSize;
-        private readonly CancellationTokenSource _cancellationToken = new CancellationTokenSource();
-        private readonly CancellationTokenSource _eventCancellationToken = new CancellationTokenSource();
+        private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        private readonly CancellationTokenSource _eventCancellationTokenSource = new CancellationTokenSource();
         private readonly ConcurrentQueue<LogEvent> _logEventBatch;
         private readonly BlockingCollection<IList<LogEvent>> _batchEventsCollection;
         private readonly BlockingCollection<LogEvent> _eventsCollection;
@@ -61,7 +61,7 @@ namespace Serilog.Sinks.Batch
         {
             try {
                 while (true) {
-                    var logEvents = _batchEventsCollection.Take(_cancellationToken.Token);
+                    var logEvents = _batchEventsCollection.Take(_cancellationTokenSource.Token);
                     SelfLog.WriteLine($"Sending batch of {logEvents.Count} logs");
                     var retValue = await WriteLogEventAsync(logEvents).ConfigureAwait(false);
                     if (retValue) {
@@ -73,6 +73,10 @@ namespace Serilog.Sinks.Batch
                         await Task.Delay(_transientThresholdSpan).ConfigureAwait(false);
 
                         _batchEventsCollection.Add(logEvents);
+                    }
+
+                    if (_cancellationTokenSource.IsCancellationRequested) {
+                        _cancellationTokenSource.Token.ThrowIfCancellationRequested();
                     }
                 }
             }
@@ -96,7 +100,7 @@ namespace Serilog.Sinks.Batch
         {
             try {
                 while (true) {
-                    var logEvent = _eventsCollection.Take(_eventCancellationToken.Token);
+                    var logEvent = _eventsCollection.Take(_eventCancellationTokenSource.Token);
                     _logEventBatch.Enqueue(logEvent);
 
                     if (_logEventBatch.Count >= _batchSize) {
@@ -163,8 +167,8 @@ namespace Serilog.Sinks.Batch
             try {
                 SelfLog.WriteLine("Halting sink...");
 
-                _eventCancellationToken.Cancel();
-                _cancellationToken.Cancel();
+                _eventCancellationTokenSource.Cancel();
+                _cancellationTokenSource.Cancel();
 
                 _canStop = true;
                 _timerResetEvent.Set();

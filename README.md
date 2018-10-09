@@ -65,6 +65,17 @@ In your application's App.config or Web.config file, specify the `AzureLogAnalyt
 ## Performance
 Sink buffers log internally and flush to Azure Log Analytics in batches using dedicated thread for better performance.
 
+## [Azure Log Analytics data limits](https://docs.microsoft.com/en-us/azure/log-analytics/log-analytics-data-collector-api#data-limits)
+There are some constraints around the data posted to the Log Analytics Data collection API.
+
+Maximum of 30 MB per post to Log Analytics. This is a size limit for a single post. If the data from a single post that exceeds 30 MB, you should split the data up to smaller sized chunks and send them concurrently.
+
+Maximum of 32 KB limit for field values. If the field value is greater than 32 KB, the data will be truncated.
+
+Recommended maximum number of fields for a given type is 50. This is a practical limit from a usability and search experience perspective.
+
+>**Note**: Log data exceeding maximum permissible size will get dropped and will not appear in Azure Log.
+
 ---
 
 Many thanks to the [<img src="resources/jetbrains.svg" width="100px"/>](https://www.jetbrains.com "JetBrains") for donating awesome suite of tools making this project possible.
