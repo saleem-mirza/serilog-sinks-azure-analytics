@@ -45,7 +45,7 @@ namespace Serilog.Sinks
         private readonly JsonSerializer _jsonSerializer;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
         private static readonly HttpClient Client = new HttpClient();
-        private static readonly int MaximumMessageSize = 32000000;
+        private static readonly int MaximumMessageSize = 30000000;
 
         internal AzureLogAnalyticsSink(string workSpaceId, string authenticationId, ConfigurationSettings settings) :
             base(settings.BatchSize, settings.BufferSize)
