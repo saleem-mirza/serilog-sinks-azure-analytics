@@ -159,9 +159,12 @@ namespace Serilog.Sinks
                     _jsonSerializerSettings);
 
                 if (GetStringSizeInBytes(jsonString.Length) >= MaximumMessageSize) {
-                    counter--;
-                    SelfLog.WriteLine("Log size is more than 32 MB. Consider sending smaller message");
-                    SelfLog.WriteLine("Dropping invalid message");
+                    if (counter > 0) {
+                        counter--;
+                    }
+
+                    SelfLog.WriteLine("Log size is more than 30 MB. Consider sending smaller message");
+                    SelfLog.WriteLine("Dropping invalid log message");
                     continue;
                 }
 
