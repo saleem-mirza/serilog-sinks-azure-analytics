@@ -24,6 +24,8 @@ This sink accepts following optional configuration parameters for fine grained c
 
 > `storeTimestampInUtc`: Flag dictating if timestamp to be stored in UTC or local timezone format.
 
+> `includeMessageTemplate`: Flag dictating if the message template should be included in the log message.
+
 > `formatProvider`: Supplies an object that provides formatting information for formatting and parsing operations.
 
 > `logBufferSize`: Maximum number of log entries this sink can hold before stop accepting log messages. Default is 25000, acceptable range is between 5000 to 100000.

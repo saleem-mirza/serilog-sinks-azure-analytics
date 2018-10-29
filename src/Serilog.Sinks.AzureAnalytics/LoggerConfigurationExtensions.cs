@@ -37,6 +37,7 @@ namespace Serilog
         /// <param name="logName">A distinguishable log type name. Default is "DiagnosticsLog"</param>
         /// <param name="restrictedToMinimumLevel">The minimum log event level required in order to write an event to the sink.</param>
         /// <param name="storeTimestampInUtc">Flag dictating if timestamp to be stored in UTC or local timezone format.</param>
+        /// <param name="includeMessageTemplate">Flag dictating if the message template should be included in the log message.</param>
         /// <param name="formatProvider">
         ///     Supplies an object that provides formatting information for formatting and parsing
         ///     operations
@@ -55,6 +56,7 @@ namespace Serilog
             string logName = "DiagnosticsLog",
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             bool storeTimestampInUtc = true,
+            bool includeMessageTemplate = false,
             IFormatProvider formatProvider = null,
             int logBufferSize = 2000,
             int batchSize = 100,
@@ -71,6 +73,7 @@ namespace Serilog
                     authenticationId,
                     logName,
                     storeTimestampInUtc,
+                    includeMessageTemplate,
                     formatProvider,
                     logBufferSize,
                     batchSize,
@@ -89,6 +92,7 @@ namespace Serilog
         /// <param name="logName">A distinguishable log type name. Default is "DiagnosticsLog"</param>
         /// <param name="restrictedToMinimumLevel">The minimum log event level required in order to write an event to the sink.</param>
         /// <param name="storeTimestampInUtc">Flag dictating if timestamp to be stored in UTC or local timezone format.</param>
+        /// <param name="includeMessageTemplate">Flag dictating if the message template should be included in the log message.</param>
         /// <param name="formatProvider">
         ///     Supplies an object that provides formatting information for formatting and parsing
         ///     operations
@@ -107,6 +111,7 @@ namespace Serilog
             string logName = "DiagnosticsLog",
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             bool storeTimestampInUtc = true,
+            bool includeMessageTemplate = false,
             IFormatProvider formatProvider = null,
             int logBufferSize = 2000,
             int batchSize = 100,
@@ -124,6 +129,7 @@ namespace Serilog
                     authenticationId,
                     logName,
                     storeTimestampInUtc,
+                    includeMessageTemplate,
                     formatProvider,
                     logBufferSize,
                     batchSize,

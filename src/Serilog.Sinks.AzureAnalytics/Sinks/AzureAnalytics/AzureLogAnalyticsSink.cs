@@ -41,6 +41,7 @@ namespace Serilog.Sinks
         private readonly IFormatProvider _formatProvider;
         private readonly string _logName;
         private readonly bool _storeTimestampInUtc;
+        private readonly bool _includeMessageTemplate;
         private readonly string _workSpaceId;
         private readonly JsonSerializer _jsonSerializer;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
@@ -56,6 +57,7 @@ namespace Serilog.Sinks
             _authenticationId    = authenticationId;
             _logName             = settings.LogName;
             _storeTimestampInUtc = settings.StoreTimestampInUtc;
+            _includeMessageTemplate = settings.IncludeMessageTemplate;
             _formatProvider      = settings.FormatProvider;
 
             switch (settings.PropertyNamingStrategy) {
@@ -112,6 +114,7 @@ namespace Serilog.Sinks
             string authenticationId,
             string logName,
             bool storeTimestampInUtc,
+            bool includeMessageTemplate,
             IFormatProvider formatProvider,
             int logBufferSize = 25_000,
             int batchSize = 100,
@@ -126,7 +129,8 @@ namespace Serilog.Sinks
                 BufferSize             = logBufferSize,
                 BatchSize              = batchSize,
                 LogName                = logName,
-                PropertyNamingStrategy = NamingStrategy.Default
+                PropertyNamingStrategy = NamingStrategy.Default,
+                IncludeMessageTemplate = includeMessageTemplate
             }) { }
 
         #region ILogEvent implementation
@@ -154,7 +158,7 @@ namespace Serilog.Sinks
 
             foreach (var logEvent in logEventsBatch) {
                 var jsonString = JsonConvert.SerializeObject(
-                    JObject.FromObject(logEvent.Dictionary(_storeTimestampInUtc, _formatProvider), _jsonSerializer)
+                    JObject.FromObject(logEvent.Dictionary(_storeTimestampInUtc, _includeMessageTemplate, _formatProvider), _jsonSerializer)
                            .Flaten(),
                     _jsonSerializerSettings);
 

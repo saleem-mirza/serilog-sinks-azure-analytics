@@ -23,17 +23,18 @@ namespace Serilog.Sinks.Extensions
 {
     internal static class LogEventExtensions
     {
-        internal static string Json(this LogEvent logEvent, bool storeTimestampInUtc = false)
+        internal static string Json(this LogEvent logEvent, bool storeTimestampInUtc = false, bool includeMessageTemplate = false)
         {
-            return JsonConvert.SerializeObject(ConvertToDictionary(logEvent, storeTimestampInUtc));
+            return JsonConvert.SerializeObject(ConvertToDictionary(logEvent, storeTimestampInUtc, includeMessageTemplate));
         }
 
         internal static IDictionary<string, object> Dictionary(
             this LogEvent logEvent,
             bool storeTimestampInUtc = false,
+            bool includeMessageTemplate = false,
             IFormatProvider formatProvider = null)
         {
-            return ConvertToDictionary(logEvent, storeTimestampInUtc, formatProvider);
+            return ConvertToDictionary(logEvent, storeTimestampInUtc, includeMessageTemplate, formatProvider);
         }
 
         internal static string Json(this IReadOnlyDictionary<string, LogEventPropertyValue> properties)
@@ -61,6 +62,7 @@ namespace Serilog.Sinks.Extensions
         private static dynamic ConvertToDictionary(
             LogEvent logEvent,
             bool storeTimestampInUtc,
+            bool includeMessageTemplate,
             IFormatProvider formatProvider = null)
         {
             var eventObject = new ExpandoObject() as IDictionary<string, object>;
@@ -74,6 +76,10 @@ namespace Serilog.Sinks.Extensions
             eventObject.Add("LogMessage", logEvent.RenderMessage(formatProvider));
             eventObject.Add("LogException", logEvent.Exception);
             eventObject.Add("LogProperties", logEvent.Properties.Dictionary());
+            if (includeMessageTemplate)
+            {
+                eventObject.Add("MessageTemplate", logEvent.MessageTemplate);
+            }
 
             return eventObject;
         }
