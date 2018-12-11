@@ -1,5 +1,5 @@
 # Serilog.Sinks.AzureAnalytics
-High performance Serilog sink that writes to Azure Log Analytics. Sink do support automatic batching of log messages for better performance and auto-recovery from transient errors.
+High performance Serilog sink that writes to Azure Log Analytics. It supports automatic batching of log messages for better performance and auto-recovery from transient errors.
 
 
 ## Getting started
