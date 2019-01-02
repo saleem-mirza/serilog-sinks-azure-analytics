@@ -31,7 +31,7 @@ namespace Serilog
         /// </summary>
         /// <param name="loggerConfiguration">The logger configuration.</param>
         /// <param name="workspaceId">Workspace Id from Azure OMS Portal connected sources.</param>
-        /// <param name="authenticationId">
+        /// <param name="primaryAuthenticationKey">
         ///     Primary or Secondary key from Azure OMS Portal connected sources.
         /// </param>
         /// <param name="logName">A distinguishable log type name. Default is "DiagnosticsLog"</param>
@@ -51,7 +51,7 @@ namespace Serilog
         public static LoggerConfiguration AzureLogAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
             string workspaceId,
-            string authenticationId,
+            string primaryAuthenticationKey,
             string logName = "DiagnosticsLog",
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             bool storeTimestampInUtc = true,
@@ -62,13 +62,14 @@ namespace Serilog
         {
             if (string.IsNullOrEmpty(workspaceId))
                 throw new ArgumentNullException(nameof(workspaceId));
-            if (string.IsNullOrEmpty(authenticationId))
-                throw new ArgumentNullException(nameof(authenticationId));
+            if (string.IsNullOrEmpty(primaryAuthenticationKey))
+                throw new ArgumentNullException(nameof(primaryAuthenticationKey));
 
             return loggerConfiguration.Sink(
                 new AzureLogAnalyticsSink(
                     workspaceId,
-                    authenticationId,
+                    primaryAuthenticationKey,
+                    null,
                     logName,
                     storeTimestampInUtc,
                     formatProvider,
@@ -83,8 +84,8 @@ namespace Serilog
         /// </summary>
         /// <param name="loggerConfiguration">The logger configuration.</param>
         /// <param name="workspaceId">Workspace Id from Azure OMS Portal connected sources.</param>
-        /// <param name="authenticationId">
-        ///     Primary or Secondary key from Azure OMS Portal connected sources.
+        /// <param name="primaryAuthenticationKey">
+        ///     Primary authentication key from Azure OMS Portal connected sources.
         /// </param>
         /// <param name="logName">A distinguishable log type name. Default is "DiagnosticsLog"</param>
         /// <param name="restrictedToMinimumLevel">The minimum log event level required in order to write an event to the sink.</param>
@@ -97,13 +98,16 @@ namespace Serilog
         /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
         /// <param name="azureOfferingType">Azure offering type for public or government. Default is AzureOfferingType.Public</param>
         /// <param name="levelSwitch">
-        /// A switch allowing the pass-through minimum level to be changed at runtime.
+        ///     A switch allowing the pass-through minimum level to be changed at runtime.
+        /// </param>
+        /// <param name="secondaryAuthenticationKey">
+        ///     An authentication key to use in the event where primary authentication key is invalid.
         /// </param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         public static LoggerConfiguration AzureAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
             string workspaceId,
-            string authenticationId,
+            string primaryAuthenticationKey,
             string logName = "DiagnosticsLog",
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             bool storeTimestampInUtc = true,
@@ -111,17 +115,19 @@ namespace Serilog
             int logBufferSize = 2000,
             int batchSize = 100,
             AzureOfferingType azureOfferingType = AzureOfferingType.Public,
-            LoggingLevelSwitch levelSwitch = null)
+            LoggingLevelSwitch levelSwitch = null,
+            string secondaryAuthenticationKey = null)
         {
             if (string.IsNullOrEmpty(workspaceId))
                 throw new ArgumentNullException(nameof(workspaceId));
-            if (string.IsNullOrEmpty(authenticationId))
-                throw new ArgumentNullException(nameof(authenticationId));
+            if (string.IsNullOrEmpty(primaryAuthenticationKey))
+                throw new ArgumentNullException(nameof(primaryAuthenticationKey));
 
             return loggerConfiguration.Sink(
                 new AzureLogAnalyticsSink(
                     workspaceId,
-                    authenticationId,
+                    primaryAuthenticationKey,
+                    secondaryAuthenticationKey,
                     logName,
                     storeTimestampInUtc,
                     formatProvider,
@@ -137,8 +143,8 @@ namespace Serilog
         /// </summary>
         /// <param name="loggerConfiguration">The logger configuration.</param>
         /// <param name="workspaceId">Workspace Id from Azure OMS Portal connected sources.</param>
-        /// <param name="authenticationId">
-        ///     Primary or Secondary key from Azure OMS Portal connected sources.
+        /// <param name="primaryAuthenticationKey">
+        ///     Primary authentication key from Azure OMS Portal connected sources. Secondary key can be specified via the ConfigurationSettings argument. 
         /// </param>
         /// <param name="loggerSettings">Optional configuration settings for logger</param>
         /// <param name="restrictedToMinimumLevel">The minimum log event level required in order to write an event to the sink.</param>
@@ -149,18 +155,18 @@ namespace Serilog
         public static LoggerConfiguration AzureAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
             string workspaceId,
-            string authenticationId,
+            string primaryAuthenticationKey,
             ConfigurationSettings loggerSettings,
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             LoggingLevelSwitch levelSwitch = null)
         {
             if (string.IsNullOrEmpty(workspaceId))
                 throw new ArgumentNullException(nameof(workspaceId));
-            if (string.IsNullOrEmpty(authenticationId))
-                throw new ArgumentNullException(nameof(authenticationId));
+            if (string.IsNullOrEmpty(primaryAuthenticationKey))
+                throw new ArgumentNullException(nameof(primaryAuthenticationKey));
 
             return loggerConfiguration.Sink(
-                new AzureLogAnalyticsSink(workspaceId, authenticationId, loggerSettings),
+                new AzureLogAnalyticsSink(workspaceId, primaryAuthenticationKey, loggerSettings),
                 restrictedToMinimumLevel,
                 levelSwitch);
         }

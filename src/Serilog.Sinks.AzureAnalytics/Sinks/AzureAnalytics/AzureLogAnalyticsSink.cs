@@ -14,6 +14,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -37,7 +38,8 @@ namespace Serilog.Sinks
     {
         private readonly SemaphoreSlim _semaphore;
         private readonly Uri _analyticsUrl;
-        private readonly string _authenticationId;
+        private readonly string _primaryAuthenticationKey;
+        private readonly string _secondaryAuthenticationKey;
         private readonly IFormatProvider _formatProvider;
         private readonly string _logName;
         private readonly bool _storeTimestampInUtc;
@@ -46,17 +48,26 @@ namespace Serilog.Sinks
         private readonly JsonSerializerSettings _jsonSerializerSettings;
         private static readonly HttpClient Client = new HttpClient();
         private const int MaximumMessageSize = 30_000_000;
+        private const int MaximumSendRetryCount = 10;
+        private int _currentSendRetryCounter = 0;
+        private SignatureBuilder _signatureBuilder;
 
-        internal AzureLogAnalyticsSink(string workSpaceId, string authenticationId, ConfigurationSettings settings) :
-            base(settings.BatchSize, settings.BufferSize)
+        internal AzureLogAnalyticsSink(
+            string workSpaceId, 
+            string primaryAuthenticationKey,
+            ConfigurationSettings settings) :
+                base(settings.BatchSize, settings.BufferSize)
         {
             _semaphore = new SemaphoreSlim(1, 1);
 
-            _workSpaceId         = workSpaceId;
-            _authenticationId    = authenticationId;
-            _logName             = settings.LogName;
-            _storeTimestampInUtc = settings.StoreTimestampInUtc;
-            _formatProvider      = settings.FormatProvider;
+            _workSpaceId                = workSpaceId;
+            _primaryAuthenticationKey    = primaryAuthenticationKey;
+            _secondaryAuthenticationKey  = settings.SecondaryAuthenticationKey;
+            _logName                    = settings.LogName;
+            _storeTimestampInUtc        = settings.StoreTimestampInUtc;
+            _formatProvider             = settings.FormatProvider;
+
+            _signatureBuilder = new SignatureBuilder(_workSpaceId, _primaryAuthenticationKey, _secondaryAuthenticationKey, usePrimaryKey: true);
 
             switch (settings.PropertyNamingStrategy) {
                 case NamingStrategy.Default:
@@ -109,7 +120,8 @@ namespace Serilog.Sinks
 
         internal AzureLogAnalyticsSink(
             string workSpaceId,
-            string authenticationId,
+            string primaryAuthenticationKey,
+            string secondaryAuthenticationKey,
             string logName,
             bool storeTimestampInUtc,
             IFormatProvider formatProvider,
@@ -117,7 +129,7 @@ namespace Serilog.Sinks
             int batchSize = 100,
             AzureOfferingType azureOfferingType = AzureOfferingType.Public) : this(
             workSpaceId,
-            authenticationId,
+            primaryAuthenticationKey,
             new ConfigurationSettings
             {
                 FormatProvider         = formatProvider,
@@ -126,7 +138,8 @@ namespace Serilog.Sinks
                 BufferSize             = logBufferSize,
                 BatchSize              = batchSize,
                 LogName                = logName,
-                PropertyNamingStrategy = NamingStrategy.Default
+                PropertyNamingStrategy = NamingStrategy.Default,
+                SecondaryAuthenticationKey = secondaryAuthenticationKey
             }) { }
 
         #region ILogEvent implementation
@@ -201,15 +214,13 @@ namespace Serilog.Sinks
                 logEventJsonBuilder.Insert(0, "[");
                 logEventJsonBuilder.Append("]");
 
-
                 var logEventJsonString = logEventJsonBuilder.ToString();
                 var contentLength = Encoding.UTF8.GetByteCount(logEventJsonString);
-
                 var dateString = DateTime.UtcNow.ToString("r");
-                var hashedString = BuildSignature(contentLength, dateString, _authenticationId);
-                var signature = $"SharedKey {_workSpaceId}:{hashedString}";
 
-                var result = await PostDataAsync(signature, dateString, logEventJsonString).ConfigureAwait(false);
+                bool result = false;
+                
+                result = await PostDataAsync(dateString, logEventJsonString).ConfigureAwait(false);
 
                 return result;
             }
@@ -217,22 +228,15 @@ namespace Serilog.Sinks
             return false;
         }
 
-        private static string BuildSignature(int contentLength, string dateString, string key)
+        private async Task<bool> PostDataAsync(string dateString, string jsonString)
         {
-            var stringToHash =
-                "POST\n" + contentLength + "\napplication/json\n" + "x-ms-date:" + dateString + "\n/api/logs";
+            var isReleased = false;
 
-            var encoding = new UTF8Encoding();
-            var keyByte = Convert.FromBase64String(key);
-            var messageBytes = encoding.GetBytes(stringToHash);
-            using (var hmacsha256 = new HMACSHA256(keyByte)) {
-                return Convert.ToBase64String(hmacsha256.ComputeHash(messageBytes));
-            }
-        }
+            try
+            {
+                var contentLength = Encoding.UTF8.GetByteCount(jsonString);
+                var signature = _signatureBuilder.BuildSignature(contentLength, dateString);
 
-        private async Task<bool> PostDataAsync(string signature, string dateString, string jsonString)
-        {
-            try {
                 await _semaphore.WaitAsync().ConfigureAwait(false);
 
                 Client.DefaultRequestHeaders.Clear();
@@ -244,6 +248,31 @@ namespace Serilog.Sinks
                 stringContent.Headers.Add("Log-Type", _logName);
 
                 var response = await Client.PostAsync(_analyticsUrl, stringContent).ConfigureAwait(false);
+
+                if (response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    if (!_signatureBuilder.SupportsMultipleAuthKeys)
+                        return false;
+
+                    _currentSendRetryCounter++;
+
+                    SelfLog.WriteLine("Failed POST. Toggling keys prior to re-trying.");
+                    _signatureBuilder.ToggleKeys();
+
+                    _semaphore.Release();
+                    isReleased = true;
+
+                    if (_currentSendRetryCounter >= MaximumSendRetryCount)
+                    {
+                        SelfLog.WriteLine("Reached maximum send retry threshold of {0}", MaximumSendRetryCount);
+                        return false;
+                    }
+
+                    return await PostDataAsync(dateString, jsonString).ConfigureAwait(false);
+                }
+
+                _currentSendRetryCounter = 0;
+
                 var message = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
                 SelfLog.WriteLine("{0}: {1}", response.ReasonPhrase, message);
@@ -256,7 +285,8 @@ namespace Serilog.Sinks
                 return false;
             }
             finally {
-                _semaphore.Release();
+                if (!isReleased)
+                    _semaphore.Release();
             }
         }
     }
