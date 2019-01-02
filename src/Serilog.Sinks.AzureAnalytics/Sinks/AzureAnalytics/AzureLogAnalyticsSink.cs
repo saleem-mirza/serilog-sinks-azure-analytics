@@ -213,14 +213,9 @@ namespace Serilog.Sinks
                 logEventJsonBuilder.Append("]");
 
                 var logEventJsonString = logEventJsonBuilder.ToString();
-                var contentLength = Encoding.UTF8.GetByteCount(logEventJsonString);
                 var dateString = DateTime.UtcNow.ToString("r");
-
-                bool result = false;
                 
-                result = await PostDataAsync(dateString, logEventJsonString).ConfigureAwait(false);
-
-                return result;
+                return await PostDataAsync(dateString, logEventJsonString).ConfigureAwait(false);
             }
 
             return false;
