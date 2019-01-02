@@ -48,8 +48,6 @@ namespace Serilog.Sinks
         private readonly JsonSerializerSettings _jsonSerializerSettings;
         private static readonly HttpClient Client = new HttpClient();
         private const int MaximumMessageSize = 30_000_000;
-        private const int MaximumSendRetryCount = 10;
-        private int _currentSendRetryCounter = 0;
         private SignatureBuilder _signatureBuilder;
 
         internal AzureLogAnalyticsSink(
@@ -228,7 +226,7 @@ namespace Serilog.Sinks
             return false;
         }
 
-        private async Task<bool> PostDataAsync(string dateString, string jsonString)
+        private async Task<bool> PostDataAsync(string dateString, string jsonString, int currentSendRetryCounter = 0)
         {
             var isReleased = false;
 
@@ -252,26 +250,27 @@ namespace Serilog.Sinks
                 if (response.StatusCode == HttpStatusCode.Forbidden)
                 {
                     if (!_signatureBuilder.SupportsMultipleAuthKeys)
+                    {
+                        SelfLog.WriteLine("Cannot authenticate using primary key. Secondary key was not provided");
                         return false;
+                    }
 
-                    _currentSendRetryCounter++;
+                    currentSendRetryCounter++;
 
-                    SelfLog.WriteLine("Failed POST. Toggling keys prior to re-trying.");
+                    SelfLog.WriteLine("Failed to authenticate. Toggling keys prior to re-trying.");
                     _signatureBuilder.ToggleKeys();
 
                     _semaphore.Release();
                     isReleased = true;
 
-                    if (_currentSendRetryCounter >= MaximumSendRetryCount)
+                    if (currentSendRetryCounter > 1)
                     {
-                        SelfLog.WriteLine("Reached maximum send retry threshold of {0}", MaximumSendRetryCount);
+                        SelfLog.WriteLine("Cannot authenticate with either of the provided keys.");
                         return false;
                     }
 
-                    return await PostDataAsync(dateString, jsonString).ConfigureAwait(false);
+                    return await PostDataAsync(dateString, jsonString, currentSendRetryCounter).ConfigureAwait(false);
                 }
-
-                _currentSendRetryCounter = 0;
 
                 var message = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
