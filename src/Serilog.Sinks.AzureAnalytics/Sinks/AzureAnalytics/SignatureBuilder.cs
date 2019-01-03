@@ -30,7 +30,7 @@ namespace Serilog.Sinks.AzureAnalytics
         public string BuildSignature(int contentLength, string dateString)
         {
             var hashedKey = BuildHashedSignature(contentLength, dateString, GetKey());
-            return $"SharedKey {_workspaceId}:{hashedKey}";
+            return $"{_workspaceId}:{hashedKey}";
         }
 
         private string GetKey()

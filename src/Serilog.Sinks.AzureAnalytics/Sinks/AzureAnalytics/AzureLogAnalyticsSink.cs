@@ -46,9 +46,10 @@ namespace Serilog.Sinks
         private readonly string _workSpaceId;
         private readonly JsonSerializer _jsonSerializer;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
-        private static readonly HttpClient Client = new HttpClient();
         private const int MaximumMessageSize = 30_000_000;
         private SignatureBuilder _signatureBuilder;
+
+        private HttpClient Client = new HttpClient();
 
         internal AzureLogAnalyticsSink(
             string workSpaceId, 
@@ -232,15 +233,32 @@ namespace Serilog.Sinks
 
                 await _semaphore.WaitAsync().ConfigureAwait(false);
 
-                Client.DefaultRequestHeaders.Clear();
-                Client.DefaultRequestHeaders.Add("Authorization", signature);
-                Client.DefaultRequestHeaders.Add("x-ms-date", dateString);
+                HttpResponseMessage response;
 
-                var stringContent = new StringContent(jsonString);
-                stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
-                stringContent.Headers.Add("Log-Type", _logName);
+                using (var client = new HttpClient())
+                {
+                    client.DefaultRequestHeaders.Clear();
+                    // Client.DefaultRequestHeaders.Add("Authorization", signature);
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("SharedKey", signature);
+                    client.DefaultRequestHeaders.Add("x-ms-date", dateString);
 
-                var response = await Client.PostAsync(_analyticsUrl, stringContent).ConfigureAwait(false);
+                    var stringContent = new StringContent(jsonString);
+                    stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
+                    stringContent.Headers.Add("Log-Type", _logName);
+
+                    response = await client.PostAsync(_analyticsUrl, stringContent).ConfigureAwait(false);
+                }
+
+                //Client.DefaultRequestHeaders.Clear();
+                //// Client.DefaultRequestHeaders.Add("Authorization", signature);
+                //Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("SharedKey", signature);
+                //Client.DefaultRequestHeaders.Add("x-ms-date", dateString);
+                
+                //var stringContent = new StringContent(jsonString);
+                //stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
+                //stringContent.Headers.Add("Log-Type", _logName);
+
+                //response = await Client.PostAsync(_analyticsUrl, stringContent).ConfigureAwait(false);
 
                 if (response.StatusCode == HttpStatusCode.Forbidden)
                 {
@@ -251,6 +269,8 @@ namespace Serilog.Sinks
                     }
 
                     currentSendRetryCounter++;
+
+                    Client = new HttpClient();
 
                     SelfLog.WriteLine("Failed to authenticate. Toggling keys prior to re-trying.");
                     _signatureBuilder.ToggleKeys();

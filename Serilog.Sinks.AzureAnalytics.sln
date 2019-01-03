@@ -7,6 +7,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{B59F042A-373
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Serilog.Sinks.AzureAnalytics", "src\Serilog.Sinks.AzureAnalytics\Serilog.Sinks.AzureAnalytics.csproj", "{5F86440C-1EE0-4955-929E-AEBDEBF04847}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Serilog.TestHarness.Console", "Serilog.TestHarness.Console\Serilog.TestHarness.Console.csproj", "{6E98F91D-1A42-4E64-AA55-4A16C71356DD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,11 +19,19 @@ Global
 		{5F86440C-1EE0-4955-929E-AEBDEBF04847}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5F86440C-1EE0-4955-929E-AEBDEBF04847}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5F86440C-1EE0-4955-929E-AEBDEBF04847}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E98F91D-1A42-4E64-AA55-4A16C71356DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E98F91D-1A42-4E64-AA55-4A16C71356DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E98F91D-1A42-4E64-AA55-4A16C71356DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E98F91D-1A42-4E64-AA55-4A16C71356DD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{5F86440C-1EE0-4955-929E-AEBDEBF04847} = {B59F042A-3738-4207-A086-A048580FF0E3}
+		{6E98F91D-1A42-4E64-AA55-4A16C71356DD} = {B59F042A-3738-4207-A086-A048580FF0E3}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4E0FDD0E-320D-45EF-8BC2-702999745354}
 	EndGlobalSection
 EndGlobal
