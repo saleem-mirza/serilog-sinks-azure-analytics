@@ -38,25 +38,23 @@ namespace Serilog.Sinks
         private readonly SemaphoreSlim _semaphore;
         private readonly Uri _analyticsUrl;
         private readonly string _authenticationId;
-        private readonly IFormatProvider _formatProvider;
-        private readonly string _logName;
-        private readonly bool _storeTimestampInUtc;
         private readonly string _workSpaceId;
         private readonly JsonSerializer _jsonSerializer;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
+        private readonly ConfigurationSettings _configurationSettings;
         private static readonly HttpClient Client = new HttpClient();
         private const int MaximumMessageSize = 30_000_000;
+        
 
         internal AzureLogAnalyticsSink(string workSpaceId, string authenticationId, ConfigurationSettings settings) :
             base(settings.BatchSize, settings.BufferSize)
         {
             _semaphore = new SemaphoreSlim(1, 1);
 
+            _configurationSettings = settings;
+
             _workSpaceId         = workSpaceId;
             _authenticationId    = authenticationId;
-            _logName             = settings.LogName;
-            _storeTimestampInUtc = settings.StoreTimestampInUtc;
-            _formatProvider      = settings.FormatProvider;
 
             switch (settings.PropertyNamingStrategy) {
                 case NamingStrategy.Default:
@@ -102,6 +100,8 @@ namespace Serilog.Sinks
                 default: throw new ArgumentOutOfRangeException();
             }
 
+            _jsonSerializerSettings.Formatting = Newtonsoft.Json.Formatting.None;
+
             var urlSuffix = settings.AzureOfferingType == AzureOfferingType.US_Government ? ".us" : ".com";
             _analyticsUrl = new Uri(
                 $"https://{_workSpaceId}.ods.opinsights.azure{urlSuffix}/api/logs?api-version=2016-04-01");
@@ -115,7 +115,8 @@ namespace Serilog.Sinks
             IFormatProvider formatProvider,
             int logBufferSize = 25_000,
             int batchSize = 100,
-            AzureOfferingType azureOfferingType = AzureOfferingType.Public) : this(
+            AzureOfferingType azureOfferingType = AzureOfferingType.Public,
+            bool flattenObjects = true) : this(
             workSpaceId,
             authenticationId,
             new ConfigurationSettings
@@ -126,7 +127,8 @@ namespace Serilog.Sinks
                 BufferSize             = logBufferSize,
                 BatchSize              = batchSize,
                 LogName                = logName,
-                PropertyNamingStrategy = NamingStrategy.Default
+                PropertyNamingStrategy = NamingStrategy.Default,
+                Flatten = flattenObjects
             }) { }
 
         #region ILogEvent implementation
@@ -153,11 +155,15 @@ namespace Serilog.Sinks
             var counter = 0;
 
             foreach (var logEvent in logEventsBatch) {
-                var jsonString = JsonConvert.SerializeObject(
-                    JObject.FromObject(logEvent.Dictionary(_storeTimestampInUtc, _formatProvider), _jsonSerializer)
-                           .Flaten(),
-                    _jsonSerializerSettings);
-
+                
+                var eventObject = JObject.FromObject(
+                    logEvent.Dictionary(
+                        _configurationSettings.StoreTimestampInUtc,
+                        _configurationSettings.FormatProvider),
+                    _jsonSerializer).Flatten(_configurationSettings.Flatten);
+                
+                var jsonString = JsonConvert.SerializeObject( eventObject, _jsonSerializerSettings);
+                
                 if (GetStringSizeInBytes(jsonString.Length) >= MaximumMessageSize) {
                     if (counter > 0) {
                         counter--;
@@ -233,7 +239,7 @@ namespace Serilog.Sinks
         private async Task<bool> PostDataAsync(string signature, string dateString, string jsonString)
         {
             try {
-                await _semaphore.WaitAsync().ConfigureAwait(false);
+                await _semaphore.WaitAsync();
 
                 Client.DefaultRequestHeaders.Clear();
                 Client.DefaultRequestHeaders.Add("Authorization", signature);
@@ -241,14 +247,19 @@ namespace Serilog.Sinks
 
                 var stringContent = new StringContent(jsonString);
                 stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
-                stringContent.Headers.Add("Log-Type", _logName);
+                stringContent.Headers.Add("Log-Type", _configurationSettings.LogName);
 
-                var response = await Client.PostAsync(_analyticsUrl, stringContent).ConfigureAwait(false);
-                var message = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var response = await Client.PostAsync(_analyticsUrl, stringContent);
+                var message = await response.Content.ReadAsStringAsync();
 
-                SelfLog.WriteLine("{0}: {1}", response.ReasonPhrase, message);
+                if (response.IsSuccessStatusCode) {
+                    SelfLog.WriteLine("Transferring log: [{0}]", response.ReasonPhrase);
+                }
+                else {
+                    SelfLog.WriteLine("Transferring log: [{0}] {1}", response.ReasonPhrase, message);
+                }
 
-                return response.StatusCode == System.Net.HttpStatusCode.OK;
+                return response.IsSuccessStatusCode;
             }
             catch (Exception ex) {
                 SelfLog.WriteLine("ERROR: " + (ex.InnerException ?? ex).Message);

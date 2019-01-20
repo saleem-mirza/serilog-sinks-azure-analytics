@@ -29,6 +29,8 @@ namespace Serilog.Sinks.AzureAnalytics
             get => _logName;
             set => _logName = string.IsNullOrWhiteSpace(value) ? "DiagnosticsLog" : value;
         }
+
+        public bool Flatten { get; set; }
     }
 
     public enum NamingStrategy

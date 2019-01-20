@@ -99,6 +99,7 @@ namespace Serilog
         /// <param name="levelSwitch">
         /// A switch allowing the pass-through minimum level to be changed at runtime.
         /// </param>
+        /// <param name="flattenObject">Flat out complex object into simple object. All nested properties will move to root level with computed names</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         public static LoggerConfiguration AzureAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
@@ -111,7 +112,8 @@ namespace Serilog
             int logBufferSize = 2000,
             int batchSize = 100,
             AzureOfferingType azureOfferingType = AzureOfferingType.Public,
-            LoggingLevelSwitch levelSwitch = null)
+            LoggingLevelSwitch levelSwitch = null,
+            bool flattenObject = true)
         {
             if (string.IsNullOrEmpty(workspaceId))
                 throw new ArgumentNullException(nameof(workspaceId));
@@ -127,7 +129,8 @@ namespace Serilog
                     formatProvider,
                     logBufferSize,
                     batchSize,
-                    azureOfferingType),
+                    azureOfferingType,
+                    flattenObject),
                 restrictedToMinimumLevel,
                 levelSwitch);
         }

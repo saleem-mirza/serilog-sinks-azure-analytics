@@ -32,6 +32,8 @@ This sink accepts following optional configuration parameters for fine grained c
 
 > `azureOfferingType`: Enum specifying if log is being sent to public or government subscription. Default is AzureOfferingType.Public
 
+> `flattenObject`: Flag to set if complex object in LogProperties should be flatten out or embed as JSON object. Default is True.
+
 ```C#
 var logger = new LoggerConfiguration()
     .WriteTo.AzureLogAnalytics(<workspaceId>, <authenticationId>)

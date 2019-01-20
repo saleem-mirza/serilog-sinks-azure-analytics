@@ -19,26 +19,29 @@ namespace Serilog.Sinks.Extensions
 {
     internal static class JsonExtensions
     {
-        internal static IDictionary<string, object> Flaten(this JArray jsonArray)
-        {
-            if (jsonArray == null)
-                return null;
+        private const string LogPropertyName = "LogProperties";
 
-            var dict = new Dictionary<string, object>();
-            FlatenJToken(dict, jsonArray, string.Empty);
-
-            return dict;
-        }
-
-        internal static IDictionary<string, object> Flaten(this JObject jsonObject)
+        internal static JObject Flatten(this JObject jsonObject, bool flatObject = true)
         {
             if (jsonObject == null)
                 return null;
 
-            var dict = new Dictionary<string, object>();
-            FlatenJToken(dict, jsonObject, string.Empty);
+            if (flatObject) {
+                return jsonObject;
+            }
 
-            return dict;
+            var logPropToken = jsonObject.GetValue(LogPropertyName);
+            jsonObject.Remove(LogPropertyName);
+
+            jsonObject.Add(LogPropertyName, logPropToken.ToString(Newtonsoft.Json.Formatting.None, null));
+
+            return jsonObject;
+            
+
+            // var dict = new Dictionary<string, object>();
+            // FlattenJToken(dict, jsonObject, string.Empty);
+            //
+            // return JObject.FromObject(dict);
         }
 
         private static string Join(string prefix, string name)
@@ -46,12 +49,12 @@ namespace Serilog.Sinks.Extensions
             return (string.IsNullOrEmpty(prefix) ? name : prefix + "_" + name).Trim();
         }
 
-        private static void FlatenJToken(IDictionary<string, object> dict, JToken token, string prefix)
+        private static void FlattenJToken(IDictionary<string, object> dict, JToken token, string prefix)
         {
             switch (token.Type) {
                 case JTokenType.Object:
                     foreach (var prop in token.Children<JProperty>())
-                        FlatenJToken(dict, prop.Value, Join(prefix, prop.Name));
+                        FlattenJToken(dict, prop.Value, Join(prefix, prop.Name));
 
                     break;
                 case JTokenType.Array:
