@@ -7,18 +7,23 @@
         <PackageId>Serilog.Sinks.AzureAnalytics</PackageId>
         <PackageTags>serilog;logging;Azure;Analytics</PackageTags>
         <PackageIconUrl>http://serilog.net/images/serilog-sink-nuget.png</PackageIconUrl>
-        <PackageProjectUrl>http://serilog.net</PackageProjectUrl>
-        <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
+        <PackageProjectUrl>https://github.com/saleem-mirza/serilog-sinks-azure-analytics</PackageProjectUrl>
         <RepositoryUrl>https://github.com/saleem-mirza/serilog-sinks-azure-analytics</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <Copyright>Copyright © Zethian Inc. 2013-2019</Copyright>
-        <AssemblyVersion>19.3.10.0</AssemblyVersion>
-        <Version>19.3.10</Version>
+        <AssemblyVersion>4.5.0.0</AssemblyVersion>
+        <Version>4.5.0</Version>
         <SignAssembly>True</SignAssembly>
         <AssemblyOriginatorKeyFile>Serilog.snk</AssemblyOriginatorKeyFile>
         <TargetFrameworks>netstandard1.3;netstandard2.0;netcoreapp2.2;net452;net472</TargetFrameworks>
         <RootNamespace>Serilog</RootNamespace>
     </PropertyGroup>
+    <PropertyGroup>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    </PropertyGroup>
+    <ItemGroup>
+        <None Include="..\..\LICENSE"  Pack="true" PackagePath="$(PackageLicenseFile)"/>
+    </ItemGroup>
     <PropertyGroup Condition="'$(VersionSuffix)'!='' ">
         <Version>$(Version)-$(VersionSuffix)</Version>
     </PropertyGroup>
