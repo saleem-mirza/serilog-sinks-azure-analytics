@@ -73,7 +73,9 @@ namespace Serilog.Sinks.Batch
 
                         await Task.Delay(_transientThresholdSpan).ConfigureAwait(false);
 
-                        _batchEventsCollection.Add(logEvents);
+                        if (!_batchEventsCollection.IsAddingCompleted) {
+                            _batchEventsCollection.Add(logEvents);
+                        }
                     }
 
                     if (_cancellationTokenSource.IsCancellationRequested) {
@@ -81,11 +83,10 @@ namespace Serilog.Sinks.Batch
                     }
                 }
             }
-            catch (OperationCanceledException) {
-                SelfLog.WriteLine("Shutting down batch processing");
-            }
-            catch (Exception e) {
-                SelfLog.WriteLine(e.Message);
+            catch (InvalidOperationException) { }
+            catch (OperationCanceledException) { }
+            catch (Exception ex) {
+                SelfLog.WriteLine(ex.Message);
             }
         }
 
@@ -109,11 +110,10 @@ namespace Serilog.Sinks.Batch
                     }
                 }
             }
-            catch (OperationCanceledException) {
-                SelfLog.WriteLine("Shutting down event pump");
-            }
-            catch (Exception e) {
-                SelfLog.WriteLine(e.Message);
+            catch (InvalidOperationException) { }
+            catch (OperationCanceledException) { }
+            catch (Exception ex) {
+                SelfLog.WriteLine(ex.Message);
             }
         }
 
@@ -135,8 +135,12 @@ namespace Serilog.Sinks.Batch
                     }
                 }
 
-                _batchEventsCollection.Add(logEventList);
+                if (!_batchEventsCollection.IsAddingCompleted) {
+                    _batchEventsCollection.Add(logEventList);
+                }
             }
+            catch (InvalidOperationException) { }
+            catch (OperationCanceledException) { }
             finally {
                 if (!_cancellationTokenSource.IsCancellationRequested) {
                     _semaphoreSlim.Release();
@@ -149,7 +153,7 @@ namespace Serilog.Sinks.Batch
             if (_numMessages > _maxBufferSize)
                 return;
 
-            if (_eventsCollection.IsCompleted)
+            if (_eventsCollection.IsAddingCompleted)
                 return;
 
             _eventsCollection.Add(logEvent);
