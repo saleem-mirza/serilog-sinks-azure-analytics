@@ -22,7 +22,10 @@
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
     </PropertyGroup>
     <ItemGroup>
-        <None Include="..\..\LICENSE"  Pack="true" PackagePath="$(PackageLicenseFile)"/>
+        <None Include="..\..\LICENSE">
+            <Pack>true</Pack>
+            <PackagePath></PackagePath>
+        </None>
     </ItemGroup>
     <PropertyGroup Condition="'$(VersionSuffix)'!='' ">
         <Version>$(Version)-$(VersionSuffix)</Version>
