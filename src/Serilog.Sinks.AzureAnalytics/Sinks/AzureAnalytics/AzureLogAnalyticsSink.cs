@@ -177,7 +177,7 @@ namespace Serilog.Sinks
                 if (GetStringSizeInBytes(logEventJsonBuilder.Length + jsonString.Length) > MaximumMessageSize) {
 
                     SelfLog.WriteLine($"Sending mini batch of size {counter}");
-                    result = await SendLogMessage(logEventJsonBuilder);
+                    result = await SendLogMessageAsync(logEventJsonBuilder).ConfigureAwait(false);
                     if (!result) {
                         return false;
                     }
@@ -195,10 +195,10 @@ namespace Serilog.Sinks
                 SelfLog.WriteLine($"Sending mini batch of size {counter}");
             }
 
-            return result && await SendLogMessage(logEventJsonBuilder);;
+            return result && await SendLogMessageAsync(logEventJsonBuilder).ConfigureAwait(false);;
         }
 
-        private async Task<bool> SendLogMessage(StringBuilder logEventJsonBuilder)
+        private async Task<bool> SendLogMessageAsync(StringBuilder logEventJsonBuilder)
         {
             if (logEventJsonBuilder.Length > 0)
                 logEventJsonBuilder.Remove(logEventJsonBuilder.Length - 1, 1);
@@ -239,7 +239,7 @@ namespace Serilog.Sinks
         private async Task<bool> PostDataAsync(string signature, string dateString, string jsonString)
         {
             try {
-                await _semaphore.WaitAsync();
+                await _semaphore.WaitAsync().ConfigureAwait(false);
 
                 Client.DefaultRequestHeaders.Clear();
                 Client.DefaultRequestHeaders.Add("Authorization", signature);
@@ -249,8 +249,8 @@ namespace Serilog.Sinks
                 stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
                 stringContent.Headers.Add("Log-Type", _configurationSettings.LogName);
 
-                var response = await Client.PostAsync(_analyticsUrl, stringContent);
-                var message = await response.Content.ReadAsStringAsync();
+                var response = Client.PostAsync(_analyticsUrl, stringContent).GetAwaiter().GetResult();
+                var message = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode) {
                     SelfLog.WriteLine("Transferring log: [{0}]", response.ReasonPhrase);
