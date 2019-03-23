@@ -71,6 +71,7 @@ namespace Serilog.Sinks.Extensions
                     : logEvent.Timestamp.ToString("o"));
 
             eventObject.Add("LogLevel", logEvent.Level.ToString());
+            eventObject.Add("LogMessageTemplate", logEvent.MessageTemplate.Text);
             eventObject.Add("LogMessage", logEvent.RenderMessage(formatProvider));
             eventObject.Add("LogException", logEvent.Exception);
             eventObject.Add("LogProperties", logEvent.Properties.Dictionary());
@@ -80,8 +81,9 @@ namespace Serilog.Sinks.Extensions
 
         private static object Simplify(LogEventPropertyValue data)
         {
-            if (data is ScalarValue value)
+            if (data is ScalarValue value) {
                 return value.Value;
+            }
 
             // ReSharper disable once SuspiciousTypeConversion.Global
             if (data is DictionaryValue dictValue) {

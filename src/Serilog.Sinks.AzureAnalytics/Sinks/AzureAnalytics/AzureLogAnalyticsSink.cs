@@ -14,6 +14,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -44,7 +45,6 @@ namespace Serilog.Sinks
         private readonly ConfigurationSettings _configurationSettings;
         private static readonly HttpClient Client = new HttpClient();
         private const int MaximumMessageSize = 30_000_000;
-        
 
         internal AzureLogAnalyticsSink(string workSpaceId, string authenticationId, ConfigurationSettings settings) :
             base(settings.BatchSize, settings.BufferSize)
@@ -53,8 +53,8 @@ namespace Serilog.Sinks
 
             _configurationSettings = settings;
 
-            _workSpaceId         = workSpaceId;
-            _authenticationId    = authenticationId;
+            _workSpaceId      = workSpaceId;
+            _authenticationId = authenticationId;
 
             switch (settings.PropertyNamingStrategy) {
                 case NamingStrategy.Default:
@@ -128,7 +128,7 @@ namespace Serilog.Sinks
                 BatchSize              = batchSize,
                 LogName                = logName,
                 PropertyNamingStrategy = NamingStrategy.Default,
-                Flatten = flattenObjects
+                Flatten                = flattenObjects
             }) { }
 
         #region ILogEvent implementation
@@ -150,20 +150,22 @@ namespace Serilog.Sinks
             if ((logEventsBatch == null) || (logEventsBatch.Count == 0))
                 return true;
 
-            var logEventJsonBuilder = new StringBuilder();
+            var jsonStringCollection = new List<string>();
+            var jsonStringCollectionSize = 0;
+
             var result = true;
             var counter = 0;
 
             foreach (var logEvent in logEventsBatch) {
-                
                 var eventObject = JObject.FromObject(
-                    logEvent.Dictionary(
-                        _configurationSettings.StoreTimestampInUtc,
-                        _configurationSettings.FormatProvider),
-                    _jsonSerializer).Flatten(_configurationSettings.Flatten);
-                
-                var jsonString = JsonConvert.SerializeObject( eventObject, _jsonSerializerSettings);
-                
+                                              logEvent.Dictionary(
+                                                  _configurationSettings.StoreTimestampInUtc,
+                                                  _configurationSettings.FormatProvider),
+                                              _jsonSerializer)
+                                         .Flatten(_configurationSettings.Flatten);
+
+                var jsonString = JsonConvert.SerializeObject(eventObject, _jsonSerializerSettings);
+
                 if (GetStringSizeInBytes(jsonString.Length) >= MaximumMessageSize) {
                     if (counter > 0) {
                         counter--;
@@ -171,23 +173,22 @@ namespace Serilog.Sinks
 
                     SelfLog.WriteLine("Log size is more than 30 MB. Consider sending smaller message");
                     SelfLog.WriteLine("Dropping invalid log message");
+
                     continue;
                 }
 
-                if (GetStringSizeInBytes(logEventJsonBuilder.Length + jsonString.Length) > MaximumMessageSize) {
-
+                if (GetStringSizeInBytes(jsonStringCollectionSize + jsonString.Length) > MaximumMessageSize) {
                     SelfLog.WriteLine($"Sending mini batch of size {counter}");
-                    result = await SendLogMessageAsync(logEventJsonBuilder).ConfigureAwait(false);
+                    result = await SendLogMessageAsync(jsonStringCollection).ConfigureAwait(false);
                     if (!result) {
                         return false;
                     }
 
                     counter = 0;
-                    logEventJsonBuilder.Clear();
+                    jsonStringCollection.Clear();
                 }
-                
-                logEventJsonBuilder.Append(jsonString);
-                logEventJsonBuilder.Append(",");
+
+                jsonStringCollection.Add(jsonString);
                 counter++;
             }
 
@@ -195,32 +196,20 @@ namespace Serilog.Sinks
                 SelfLog.WriteLine($"Sending mini batch of size {counter}");
             }
 
-            return result && await SendLogMessageAsync(logEventJsonBuilder).ConfigureAwait(false);;
+            return result && await SendLogMessageAsync(jsonStringCollection).ConfigureAwait(false);
         }
 
-        private async Task<bool> SendLogMessageAsync(StringBuilder logEventJsonBuilder)
+        private async Task<bool> SendLogMessageAsync(List<string> jsonStringCollection)
         {
-            if (logEventJsonBuilder.Length > 0)
-                logEventJsonBuilder.Remove(logEventJsonBuilder.Length - 1, 1);
-
-            if (logEventJsonBuilder.Length > 0) {
-                logEventJsonBuilder.Insert(0, "[");
-                logEventJsonBuilder.Append("]");
-
-
-                var logEventJsonString = logEventJsonBuilder.ToString();
-                var contentLength = Encoding.UTF8.GetByteCount(logEventJsonString);
-
-                var dateString = DateTime.UtcNow.ToString("r");
-                var hashedString = BuildSignature(contentLength, dateString, _authenticationId);
-                var signature = $"SharedKey {_workSpaceId}:{hashedString}";
-
-                var result = await PostDataAsync(signature, dateString, logEventJsonString).ConfigureAwait(false);
-
-                return result;
+            if (jsonStringCollection is null) {
+                return false;
             }
 
-            return false;
+            if (!jsonStringCollection.Any()) {
+                return false;
+            }
+
+            return await PostDataAsync(jsonStringCollection).ConfigureAwait(false);
         }
 
         private static string BuildSignature(int contentLength, string dateString, string key)
@@ -236,16 +225,23 @@ namespace Serilog.Sinks
             }
         }
 
-        private async Task<bool> PostDataAsync(string signature, string dateString, string jsonString)
+        private async Task<bool> PostDataAsync(List<string> jsonStringCollection)
         {
             try {
                 await _semaphore.WaitAsync().ConfigureAwait(false);
+
+                var logEventJsonString = $"[{string.Join(",", jsonStringCollection.ToArray())}]";
+                var contentLength = Encoding.UTF8.GetByteCount(logEventJsonString);
+
+                var dateString = DateTime.UtcNow.ToString("r");
+                var hashedString = BuildSignature(contentLength, dateString, _authenticationId);
+                var signature = $"SharedKey {_workSpaceId}:{hashedString}";
 
                 Client.DefaultRequestHeaders.Clear();
                 Client.DefaultRequestHeaders.Add("Authorization", signature);
                 Client.DefaultRequestHeaders.Add("x-ms-date", dateString);
 
-                var stringContent = new StringContent(jsonString);
+                var stringContent = new StringContent(logEventJsonString);
                 stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
                 stringContent.Headers.Add("Log-Type", _configurationSettings.LogName);
 
