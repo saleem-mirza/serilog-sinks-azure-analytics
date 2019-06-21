@@ -101,10 +101,27 @@ namespace Serilog.Sinks
             }
 
             _jsonSerializerSettings.Formatting = Newtonsoft.Json.Formatting.None;
+            _analyticsUrl = GetServiceEndpoint(settings.AzureOfferingType, _workSpaceId);
+        }
 
-            var urlSuffix = settings.AzureOfferingType == AzureOfferingType.US_Government ? ".us" : ".com";
-            _analyticsUrl = new Uri(
-                $"https://{_workSpaceId}.ods.opinsights.azure{urlSuffix}/api/logs?api-version=2016-04-01");
+        private static Uri GetServiceEndpoint(AzureOfferingType azureOfferingType, string workspaceId)
+        {
+            string offeringDomain;
+            switch (azureOfferingType) {
+                case AzureOfferingType.Public:
+                    offeringDomain = "azure.com";
+                    break;
+                case AzureOfferingType.US_Government:
+                    offeringDomain = "azure.us";
+                    break;
+                case AzureOfferingType.China:
+                    offeringDomain = "azure.cn";
+                    break;
+                default: throw new ArgumentOutOfRangeException();
+            }
+
+            return new Uri(
+                $"https://{workspaceId}.ods.opinsights.{offeringDomain}/api/logs?api-version=2016-04-01");
         }
 
         internal AzureLogAnalyticsSink(

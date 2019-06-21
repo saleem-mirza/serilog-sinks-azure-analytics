@@ -3,6 +3,7 @@
     public enum AzureOfferingType
     {
         Public,
-        US_Government
+        US_Government,
+        China
     }
 }
