@@ -60,26 +60,14 @@ namespace Serilog.Sinks
                 case NamingStrategy.Default:
                     _jsonSerializerSettings = new JsonSerializerSettings
                     {
-                        ContractResolver      = new DefaultContractResolver(),
-                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                    };
-                    _jsonSerializer = new JsonSerializer
-                    {
-                        ContractResolver      = _jsonSerializerSettings.ContractResolver,
-                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                        ContractResolver      = new DefaultContractResolver()
                     };
 
                     break;
                 case NamingStrategy.CamelCase:
-                    _jsonSerializer = new JsonSerializer()
-                    {
-                        ContractResolver      = new CamelCasePropertyNamesContractResolver(),
-                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                    };
                     _jsonSerializerSettings = new JsonSerializerSettings()
                     {
-                        ContractResolver      = new CamelCasePropertyNamesContractResolver(),
-                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                        ContractResolver      = new CamelCasePropertyNamesContractResolver()
                     };
 
                     break;
@@ -87,20 +75,23 @@ namespace Serilog.Sinks
                     _jsonSerializerSettings = JsonConvert.DefaultSettings()
                      ?? new JsonSerializerSettings
                         {
-                            ContractResolver      = new DefaultContractResolver(),
-                            ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                            ContractResolver      = new DefaultContractResolver()
                         };
-                    _jsonSerializer = new JsonSerializer
-                    {
-                        ContractResolver      = _jsonSerializerSettings.ContractResolver,
-                        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-                    };
+
 
                     break;
                 default: throw new ArgumentOutOfRangeException();
             }
 
+            _jsonSerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+            _jsonSerializerSettings.PreserveReferencesHandling = PreserveReferencesHandling.Objects;
             _jsonSerializerSettings.Formatting = Newtonsoft.Json.Formatting.None;
+
+            _jsonSerializer = new JsonSerializer {
+                ContractResolver = _jsonSerializerSettings.ContractResolver,
+                ReferenceLoopHandling = _jsonSerializerSettings.ReferenceLoopHandling,
+                PreserveReferencesHandling = _jsonSerializerSettings.PreserveReferencesHandling
+            };
             _analyticsUrl = GetServiceEndpoint(settings.AzureOfferingType, _workSpaceId);
         }
 
