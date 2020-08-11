@@ -39,6 +39,48 @@ var logger = new LoggerConfiguration()
     .WriteTo.AzureLogAnalytics(<workspaceId>, <authenticationId>)
     .CreateLogger();
 ```
+## JSON appsettings configuration
+
+To configure AzureLogAnalytics sink in `appsettings.json`, in your code, call:
+
+```C#
+var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+var configuration = new ConfigurationBuilder()
+                    .AddJsonFile("appsettings.json")
+                    .AddJsonFile($"appsettings.{environment}.json")
+                    .AddEnvironmentVariables()
+                    .Build();
+
+var logger = new LoggerConfiguration()
+                         .ReadFrom.Configuration(configuration)
+                         .CreateLogger();
+```
+In your `appsettings.json` file, configure following:
+
+```JSON
+  "Serilog": {
+    "Using": [ "Serilog.Sinks.AzureAnalytics" ],
+    "MinimumLevel": "Information",
+    "Override": {
+      "System": "Information",
+      "Microsoft": "Information",
+      "Microsoft.AspNetCore.Authentication": "Information",
+      "Microsoft.AspNetCore.SignalR": "Debug",
+      "Microsoft.AspNetCore.Http.Connections": "Debug"
+    },
+    "WriteTo": [
+      {
+        "Name": "AzureAnalytics",
+        "Args": {
+          "logName": "Your Logger Name",
+          "authenticationId": "******************************",
+          "workspaceId": "****************************"          
+        }
+      }
+    ],
+    "Enrich": [ "FromLogContext", "WithMachineName", "WithThreadId", "WithThreadName", "WithEventType" ]
+  }
+```
 
 ## XML <appSettings> configuration
 
