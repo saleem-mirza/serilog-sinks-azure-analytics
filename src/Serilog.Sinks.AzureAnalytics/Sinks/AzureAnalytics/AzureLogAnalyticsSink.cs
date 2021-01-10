@@ -84,7 +84,7 @@ namespace Serilog.Sinks
             }
 
             _jsonSerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-            _jsonSerializerSettings.PreserveReferencesHandling = PreserveReferencesHandling.Objects;
+            _jsonSerializerSettings.PreserveReferencesHandling = PreserveReferencesHandling.None;
             _jsonSerializerSettings.Formatting = Newtonsoft.Json.Formatting.None;
 
             _jsonSerializer = new JsonSerializer {
