@@ -10,12 +10,12 @@
         <PackageProjectUrl>https://github.com/saleem-mirza/serilog-sinks-azure-analytics</PackageProjectUrl>
         <RepositoryUrl>https://github.com/saleem-mirza/serilog-sinks-azure-analytics</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <Copyright>Copyright © Zethian Inc. 2013-2020</Copyright>
+        <Copyright>Copyright © Zethian Inc. 2013-2021</Copyright>
         <AssemblyVersion>4.7.0.0</AssemblyVersion>
         <Version>4.7.0</Version>
         <SignAssembly>True</SignAssembly>
         <AssemblyOriginatorKeyFile>Serilog.snk</AssemblyOriginatorKeyFile>
-        <TargetFrameworks>netstandard1.3;netcoreapp3.1;net452</TargetFrameworks>
+        <TargetFrameworks>netstandard1.3;netcoreapp3.1;net5.0;net452</TargetFrameworks>
         <RootNamespace>Serilog</RootNamespace>
     </PropertyGroup>
     <PropertyGroup>
@@ -31,7 +31,7 @@
         <Version>$(Version)-$(VersionSuffix)</Version>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Serilog" Version="2.9.0" />
+        <PackageReference Include="Serilog" Version="2.10.0" />
         <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
         <PackageReference Include="System.Net.Http" Version="4.3.4" />
     </ItemGroup>

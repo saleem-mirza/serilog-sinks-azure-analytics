@@ -25,7 +25,10 @@ namespace Serilog.Sinks.Extensions
     {
         internal static string Json(this LogEvent logEvent, bool storeTimestampInUtc = false)
         {
-            return JsonConvert.SerializeObject(ConvertToDictionary(logEvent, storeTimestampInUtc));
+            return JsonConvert.SerializeObject(ConvertToDictionary(logEvent, storeTimestampInUtc), new JsonSerializerSettings {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                NullValueHandling = NullValueHandling.Ignore
+            });
         }
 
         internal static IDictionary<string, object> Dictionary(
@@ -38,7 +41,10 @@ namespace Serilog.Sinks.Extensions
 
         internal static string Json(this IReadOnlyDictionary<string, LogEventPropertyValue> properties)
         {
-            return JsonConvert.SerializeObject(ConvertToDictionary(properties));
+            return JsonConvert.SerializeObject(ConvertToDictionary(properties), new JsonSerializerSettings {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                NullValueHandling = NullValueHandling.Ignore
+            });
         }
 
         internal static IDictionary<string, object> Dictionary(
