@@ -169,7 +169,8 @@ namespace Serilog.Sinks
                                               logEvent.Dictionary(
                                                   _configurationSettings.StoreTimestampInUtc,
                                                   _configurationSettings.FormatProvider,
-                                                  _configurationSettings.PreserveLogProperties),
+                                                  _configurationSettings.PreserveLogProperties,
+                                                  _configurationSettings.SimplifyLogColumnNames),
                                               _jsonSerializer)
                                          .Flatten(_configurationSettings.Flatten);
 
