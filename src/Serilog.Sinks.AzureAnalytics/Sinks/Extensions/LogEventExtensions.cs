@@ -38,7 +38,7 @@ namespace Serilog.Sinks.Extensions
             bool preserveLogProperties = false,
             bool simplifyLogColumnNames = false)
         {
-            return ConvertToDictionary(logEvent, storeTimestampInUtc, formatProvider, preserveLogProperties);
+            return ConvertToDictionary(logEvent, storeTimestampInUtc, formatProvider, preserveLogProperties, simplifyLogColumnNames);
         }
 
 
