@@ -8,6 +8,8 @@ namespace Serilog.Sinks.AzureAnalytics
         private int _batchSize = 100;
         private string _logName = "DiagnosticsLog";
         public bool StoreTimestampInUtc = false;
+        public bool PreserveLogProperties = false;
+        public bool SimplifyLogColumnNames = false;
         public IFormatProvider FormatProvider;
         public AzureOfferingType AzureOfferingType = AzureOfferingType.Public;
         public NamingStrategy PropertyNamingStrategy = NamingStrategy.Default;
