@@ -168,7 +168,8 @@ namespace Serilog.Sinks
                 var eventObject = JObject.FromObject(
                                               logEvent.Dictionary(
                                                   _configurationSettings.StoreTimestampInUtc,
-                                                  _configurationSettings.FormatProvider),
+                                                  _configurationSettings.FormatProvider,
+                                                  _configurationSettings.PreserveLogProperties),
                                               _jsonSerializer)
                                          .Flatten(_configurationSettings.Flatten);
 

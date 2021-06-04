@@ -34,10 +34,12 @@ namespace Serilog.Sinks.Extensions
         internal static IDictionary<string, object> Dictionary(
             this LogEvent logEvent,
             bool storeTimestampInUtc = false,
-            IFormatProvider formatProvider = null)
+            IFormatProvider formatProvider = null,
+            bool preserveLogProperties = false)
         {
-            return ConvertToDictionary(logEvent, storeTimestampInUtc, formatProvider);
+            return ConvertToDictionary(logEvent, storeTimestampInUtc, formatProvider, preserveLogProperties);
         }
+
 
         internal static string Json(this IReadOnlyDictionary<string, LogEventPropertyValue> properties)
         {
@@ -67,20 +69,39 @@ namespace Serilog.Sinks.Extensions
         private static dynamic ConvertToDictionary(
             LogEvent logEvent,
             bool storeTimestampInUtc,
-            IFormatProvider formatProvider = null)
+            IFormatProvider formatProvider = null,
+            bool preserveLogProperties = false)
         {
             var eventObject = new ExpandoObject() as IDictionary<string, object>;
-            eventObject.Add(
-                "Timestamp",
-                storeTimestampInUtc
-                    ? logEvent.Timestamp.ToUniversalTime().ToString("o")
-                    : logEvent.Timestamp.ToString("o"));
-
-            eventObject.Add("LogLevel", logEvent.Level.ToString());
-            eventObject.Add("LogMessageTemplate", logEvent.MessageTemplate.Text);
-            eventObject.Add("LogMessage", logEvent.RenderMessage(formatProvider));
-            eventObject.Add("LogException", logEvent.Exception);
-            eventObject.Add("LogProperties", logEvent.Properties.Dictionary());
+            if (!preserveLogProperties)
+            {
+                eventObject.Add(
+                    "Timestamp",
+                    storeTimestampInUtc
+                        ? logEvent.Timestamp.ToUniversalTime().ToString("o")
+                        : logEvent.Timestamp.ToString("o"));
+                eventObject.Add("LogLevel", logEvent.Level.ToString());
+                eventObject.Add("LogMessageTemplate", logEvent.MessageTemplate.Text);
+                eventObject.Add("LogMessage", logEvent.RenderMessage(formatProvider));
+                eventObject.Add("LogException", logEvent.Exception);
+                eventObject.Add("LogProperties", logEvent.Properties.Dictionary());
+            }
+            else
+            {
+                eventObject.Add(
+                    "TimeGenerated",
+                    storeTimestampInUtc
+                        ? logEvent.Timestamp.ToUniversalTime().ToString("o")
+                        : logEvent.Timestamp.ToString("o"));
+                eventObject.Add(nameof(logEvent.Level), logEvent.Level.ToString());
+                eventObject.Add(nameof(logEvent.MessageTemplate), logEvent.MessageTemplate.Text);
+                eventObject.Add("Message", logEvent.RenderMessage(formatProvider));
+                eventObject.Add(nameof(logEvent.Exception), logEvent.Exception);
+                foreach (var property in logEvent.Properties)
+                {
+                    eventObject.Add(property.Key, Simplify(property.Value));
+                }
+            }
 
             return eventObject;
         }
