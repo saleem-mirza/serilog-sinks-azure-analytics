@@ -13,7 +13,6 @@
 // limitations under the License.
 
 using Serilog.Debugging;
-using Serilog.Events;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -31,9 +30,9 @@ namespace Serilog.Sinks.Batch
         private bool _canStop;
         private readonly int _maxBufferSize;
         private readonly int _batchSize;
-        private readonly ConcurrentQueue<LogEvent> _logEventBatch;
-        private readonly BlockingCollection<IList<LogEvent>> _batchEventsCollection;
-        private readonly BlockingCollection<LogEvent> _eventsCollection;
+        private readonly ConcurrentQueue<string> _logEventBatch;
+        private readonly BlockingCollection<IList<string>> _batchEventsCollection;
+        private readonly BlockingCollection<string> _eventsCollection;
         private readonly TimeSpan _timerThresholdSpan = TimeSpan.FromSeconds(10);
         private readonly TimeSpan _transientThresholdSpan = TimeSpan.FromSeconds(5);
         private readonly Task _timerTask;
@@ -48,9 +47,9 @@ namespace Serilog.Sinks.Batch
             _maxBufferSize = Math.Min(Math.Max(5_000, maxBufferSize), MaxSupportedBufferSize);
             _batchSize     = Math.Min(Math.Max(batchSize, 1), MaxSupportedBatchSize);
 
-            _logEventBatch         = new ConcurrentQueue<LogEvent>();
-            _batchEventsCollection = new BlockingCollection<IList<LogEvent>>();
-            _eventsCollection      = new BlockingCollection<LogEvent>(maxBufferSize);
+            _logEventBatch         = new ConcurrentQueue<string>();
+            _batchEventsCollection = new BlockingCollection<IList<string>>();
+            _eventsCollection      = new BlockingCollection<string>(maxBufferSize);
 
             _batchTask     = Task.Factory.StartNew(PumpAsync, TaskCreationOptions.LongRunning);
             _timerTask     = Task.Factory.StartNew(TimerPump, TaskCreationOptions.LongRunning);
@@ -127,10 +126,10 @@ namespace Serilog.Sinks.Batch
                 }
 
                 var logEventBatchSize = _logEventBatch.Count >= _batchSize ? _batchSize : _logEventBatch.Count;
-                var logEventList = new List<LogEvent>();
+                var logEventList = new List<string>();
 
                 for (var i = 0; i < logEventBatchSize; i++) {
-                    if (_logEventBatch.TryDequeue(out LogEvent logEvent)) {
+                    if (_logEventBatch.TryDequeue(out string logEvent)) {
                         logEventList.Add(logEvent);
                     }
                 }
@@ -148,7 +147,7 @@ namespace Serilog.Sinks.Batch
             }
         }
 
-        protected void PushEvent(LogEvent logEvent)
+        protected void PushEvent(string logEvent)
         {
             if (_numMessages > _maxBufferSize)
                 return;
@@ -160,7 +159,7 @@ namespace Serilog.Sinks.Batch
             Interlocked.Increment(ref _numMessages);
         }
 
-        protected abstract Task<bool> WriteLogEventAsync(ICollection<LogEvent> logEventsBatch);
+        protected abstract Task<bool> WriteLogEventAsync(ICollection<string> logEventsBatch);
 
         #region IDisposable Support
 
