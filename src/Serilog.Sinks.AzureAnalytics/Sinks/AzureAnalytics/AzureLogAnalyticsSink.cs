@@ -43,7 +43,8 @@ namespace Serilog.Sinks
         private readonly JsonSerializer _jsonSerializer;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
         private readonly ConfigurationSettings _configurationSettings;
-        private static readonly HttpClient Client = new HttpClient();
+        private static readonly HttpClientHandler ClientHandler = new HttpClientHandler();
+        private static readonly HttpClient Client = new HttpClient(ClientHandler);
         private const int MaximumMessageSize = 30_000_000;
 
         internal AzureLogAnalyticsSink(string workSpaceId, string authenticationId, ConfigurationSettings settings) :
@@ -55,6 +56,11 @@ namespace Serilog.Sinks
 
             _workSpaceId      = workSpaceId;
             _authenticationId = authenticationId;
+
+            if (!string.IsNullOrEmpty(settings.Proxy)) {
+                ClientHandler.Proxy = new WebProxy(settings.Proxy);
+                ClientHandler.UseProxy = true;
+            }
 
             switch (settings.PropertyNamingStrategy) {
                 case NamingStrategy.Default:
@@ -124,7 +130,8 @@ namespace Serilog.Sinks
             int logBufferSize = 25_000,
             int batchSize = 100,
             AzureOfferingType azureOfferingType = AzureOfferingType.Public,
-            bool flattenObjects = true) : this(
+            bool flattenObjects = true,
+            string proxy = null) : this(
             workSpaceId,
             authenticationId,
             new ConfigurationSettings
@@ -136,7 +143,8 @@ namespace Serilog.Sinks
                 BatchSize              = batchSize,
                 LogName                = logName,
                 PropertyNamingStrategy = NamingStrategy.Default,
-                Flatten                = flattenObjects
+                Flatten                = flattenObjects,
+                Proxy                  = proxy
             }) { }
 
         #region ILogEvent implementation
