@@ -2,7 +2,7 @@
     <PropertyGroup>
         <AssemblyTitle>Serilog.Sinks.AzureAnalytics</AssemblyTitle>
         <Authors>Saleem Mirza</Authors>
-        <AssemblyName>Serilog.Sinks.AzureAnalytics</AssemblyName>
+        <AssemblyName>Serilog.Sinks.AzureAnalytics.Proxy</AssemblyName>
         <Description>Serilog event sink that writes to Azure Analytics</Description>
         <PackageId>Serilog.Sinks.AzureAnalytics</PackageId>
         <PackageTags>serilog;logging;Azure;Analytics</PackageTags>
@@ -11,8 +11,8 @@
         <RepositoryUrl>https://github.com/saleem-mirza/serilog-sinks-azure-analytics</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <Copyright>Copyright © Zethian Inc. 2013-2021</Copyright>
-        <AssemblyVersion>4.7.0.0</AssemblyVersion>
-        <Version>4.7.0</Version>
+        <AssemblyVersion>4.7.0.0-proxy</AssemblyVersion>
+        <Version>4.7.0-proxy</Version>
         <SignAssembly>True</SignAssembly>
         <AssemblyOriginatorKeyFile>Serilog.snk</AssemblyOriginatorKeyFile>
         <TargetFrameworks>netstandard1.3;netcoreapp3.1;net5.0;net452</TargetFrameworks>
