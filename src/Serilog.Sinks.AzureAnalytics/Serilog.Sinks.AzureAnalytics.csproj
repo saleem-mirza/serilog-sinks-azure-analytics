@@ -11,7 +11,7 @@
         <RepositoryUrl>https://github.com/saleem-mirza/serilog-sinks-azure-analytics</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <Copyright>Copyright © Zethian Inc. 2013-2021</Copyright>
-        <AssemblyVersion>4.7.0.0-proxy</AssemblyVersion>
+        <AssemblyVersion>4.7.0.0</AssemblyVersion>
         <Version>4.7.0-proxy</Version>
         <SignAssembly>True</SignAssembly>
         <AssemblyOriginatorKeyFile>Serilog.snk</AssemblyOriginatorKeyFile>
