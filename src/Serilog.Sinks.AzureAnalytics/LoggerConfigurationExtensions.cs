@@ -44,6 +44,7 @@ namespace Serilog
         /// <param name="logBufferSize">Maximum number of log entries this sink can hold before stop accepting log messages. Supported size is between 5000 and 25000</param>
         /// <param name="batchSize">Number of log messages to be sent as batch. Supported range is between 1 and 1000</param>
         /// <param name="azureOfferingType">Azure offering type for public or government. Default is AzureOfferingType.Public</param>
+        /// <param name="proxy">Use proxy to send data to Azure</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         [Obsolete(
             "This interface is obsolete and may get removed in future release. Please consider using AzureAnalytics",
@@ -58,7 +59,8 @@ namespace Serilog
             IFormatProvider formatProvider = null,
             int logBufferSize = 2000,
             int batchSize = 100,
-            AzureOfferingType azureOfferingType = AzureOfferingType.Public)
+            AzureOfferingType azureOfferingType = AzureOfferingType.Public,
+            string proxy = null)
         {
             if (string.IsNullOrEmpty(workspaceId))
                 throw new ArgumentNullException(nameof(workspaceId));
@@ -74,7 +76,8 @@ namespace Serilog
                     formatProvider,
                     logBufferSize,
                     batchSize,
-                    azureOfferingType),
+                    azureOfferingType,
+                    proxy: proxy),
                 restrictedToMinimumLevel);
         }
 
@@ -100,6 +103,7 @@ namespace Serilog
         /// A switch allowing the pass-through minimum level to be changed at runtime.
         /// </param>
         /// <param name="flattenObject">Flat out complex object into simple object. All nested properties will move to root level with computed names</param>
+        /// <param name="proxy">Use proxy to send data to Azure</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         public static LoggerConfiguration AzureAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
@@ -113,7 +117,8 @@ namespace Serilog
             int batchSize = 100,
             AzureOfferingType azureOfferingType = AzureOfferingType.Public,
             LoggingLevelSwitch levelSwitch = null,
-            bool flattenObject = true)
+            bool flattenObject = true,
+            string proxy = null)
         {
             if (string.IsNullOrEmpty(workspaceId))
                 throw new ArgumentNullException(nameof(workspaceId));
@@ -130,7 +135,8 @@ namespace Serilog
                     logBufferSize,
                     batchSize,
                     azureOfferingType,
-                    flattenObject),
+                    flattenObject,
+                    proxy),
                 restrictedToMinimumLevel,
                 levelSwitch);
         }
