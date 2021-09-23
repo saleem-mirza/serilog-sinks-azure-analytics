@@ -115,7 +115,8 @@ namespace Serilog.Sinks
                 $"https://{workspaceId}.ods.opinsights.{offeringDomain}/api/logs?api-version=2016-04-01");
         }
 
-        internal AzureLogAnalyticsSink(string workSpaceId,
+        internal AzureLogAnalyticsSink(
+            string workSpaceId,
             string authenticationId,
             string logName,
             bool storeTimestampInUtc,
