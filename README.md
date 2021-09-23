@@ -34,6 +34,10 @@ This sink accepts following optional configuration parameters for fine grained c
 
 > `flattenObject`: Flag to set if complex object in LogProperties should be flatten out or embed as JSON object. Default is True.
 
+> `setTimeGeneratedFromTimestamp`: Set the time-generated-field header to be Timestamp and not the time that the message is ingested.
+
+> `resourceId`: Set the resource ID of the Azure resource that the data should be associated with using the x-ms-AzureResourceId header.
+
 ```C#
 var logger = new LoggerConfiguration()
     .WriteTo.AzureLogAnalytics(<workspaceId>, <authenticationId>)
