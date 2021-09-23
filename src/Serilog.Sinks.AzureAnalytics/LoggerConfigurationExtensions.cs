@@ -100,6 +100,8 @@ namespace Serilog
         /// A switch allowing the pass-through minimum level to be changed at runtime.
         /// </param>
         /// <param name="flattenObject">Flat out complex object into simple object. All nested properties will move to root level with computed names</param>
+        /// <param name="setTimeGeneratedFromTimestamp">Set the time-generated-field header to be Timestamp and not the time that the message is ingested.</param>
+        /// <param name="resourceId">Set the resource ID of the Azure resource that the data should be associated with using the x-ms-AzureResourceId header.</param>
         /// <exception cref="ArgumentNullException">A required parameter is null.</exception>
         public static LoggerConfiguration AzureAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
@@ -113,7 +115,9 @@ namespace Serilog
             int batchSize = 100,
             AzureOfferingType azureOfferingType = AzureOfferingType.Public,
             LoggingLevelSwitch levelSwitch = null,
-            bool flattenObject = true)
+            bool flattenObject = true,
+            bool setTimeGeneratedFromTimestamp = false,
+            string resourceId = null)
         {
             if (string.IsNullOrEmpty(workspaceId))
                 throw new ArgumentNullException(nameof(workspaceId));
@@ -130,7 +134,9 @@ namespace Serilog
                     logBufferSize,
                     batchSize,
                     azureOfferingType,
-                    flattenObject),
+                    flattenObject,
+                    setTimeGeneratedFromTimestamp,
+                    resourceId),
                 restrictedToMinimumLevel,
                 levelSwitch);
         }

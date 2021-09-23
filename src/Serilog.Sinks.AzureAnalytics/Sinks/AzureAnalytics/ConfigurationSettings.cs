@@ -7,6 +7,7 @@ namespace Serilog.Sinks.AzureAnalytics
         private int _logBufferSize = 25_000;
         private int _batchSize = 100;
         private string _logName = "DiagnosticsLog";
+        private string _resourceId = null;
         public bool StoreTimestampInUtc = false;
         public IFormatProvider FormatProvider;
         public AzureOfferingType AzureOfferingType = AzureOfferingType.Public;
@@ -30,7 +31,15 @@ namespace Serilog.Sinks.AzureAnalytics
             set => _logName = string.IsNullOrWhiteSpace(value) ? "DiagnosticsLog" : value;
         }
 
+        public string ResourceId
+        {
+            get => _resourceId;
+            set => _resourceId = string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+
         public bool Flatten { get; set; }
+
+        public bool SetTimeGenerated { get; set; }
     }
 
     public enum NamingStrategy

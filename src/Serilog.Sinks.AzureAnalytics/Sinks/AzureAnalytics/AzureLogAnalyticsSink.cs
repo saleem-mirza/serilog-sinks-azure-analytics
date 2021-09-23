@@ -115,8 +115,7 @@ namespace Serilog.Sinks
                 $"https://{workspaceId}.ods.opinsights.{offeringDomain}/api/logs?api-version=2016-04-01");
         }
 
-        internal AzureLogAnalyticsSink(
-            string workSpaceId,
+        internal AzureLogAnalyticsSink(string workSpaceId,
             string authenticationId,
             string logName,
             bool storeTimestampInUtc,
@@ -124,7 +123,9 @@ namespace Serilog.Sinks
             int logBufferSize = 25_000,
             int batchSize = 100,
             AzureOfferingType azureOfferingType = AzureOfferingType.Public,
-            bool flattenObjects = true) : this(
+            bool flattenObjects = true,
+            bool setTimeGenerated = false,
+            string resourceId = null) : this(
             workSpaceId,
             authenticationId,
             new ConfigurationSettings
@@ -136,7 +137,9 @@ namespace Serilog.Sinks
                 BatchSize              = batchSize,
                 LogName                = logName,
                 PropertyNamingStrategy = NamingStrategy.Default,
-                Flatten                = flattenObjects
+                Flatten                = flattenObjects,
+                SetTimeGenerated       = setTimeGenerated,
+                ResourceId             = resourceId
             }) { }
 
         #region ILogEvent implementation
@@ -248,6 +251,16 @@ namespace Serilog.Sinks
                 Client.DefaultRequestHeaders.Clear();
                 Client.DefaultRequestHeaders.Add("Authorization", signature);
                 Client.DefaultRequestHeaders.Add("x-ms-date", dateString);
+
+                if (_configurationSettings.SetTimeGenerated)
+                {
+                    Client.DefaultRequestHeaders.Add("time-generated-field", "Timestamp");
+                }
+
+                if (_configurationSettings.ResourceId != null)
+                {
+                    Client.DefaultRequestHeaders.Add("x-ms-AzureResourceId", _configurationSettings.ResourceId);
+                }
 
                 var stringContent = new StringContent(logEventJsonString);
                 stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
