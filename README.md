@@ -119,7 +119,3 @@ Maximum of 32 KB limit for field values. If the field value is greater than 32 K
 Recommended maximum number of fields for a given type is 50. This is a practical limit from a usability and search experience perspective.
 
 >**Note**: Log data exceeding maximum permissible size will get dropped and will not appear in Azure Log.
-
----
-
-Many thanks to the [<img src="resources/jetbrains.svg" width="100px"/>](https://www.jetbrains.com "JetBrains") for donating awesome suite of tools making this project possible.
