@@ -31,6 +31,8 @@ namespace Serilog.Sinks.AzureAnalytics
         }
 
         public bool Flatten { get; set; }
+        
+        public string Proxy { get; set; }
     }
 
     public enum NamingStrategy
