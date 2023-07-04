@@ -151,7 +151,16 @@ namespace Serilog.Sinks
 
         public void Emit(LogEvent logEvent)
         {
-            PushEvent(logEvent);
+            var eventObject = JObject.FromObject(
+                                          logEvent.Dictionary(
+                                              _configurationSettings.StoreTimestampInUtc,
+                                              _configurationSettings.FormatProvider),
+                                          _jsonSerializer)
+                                     .Flatten(_configurationSettings.Flatten);
+
+            var jsonString = JsonConvert.SerializeObject(eventObject, _jsonSerializerSettings);
+
+            PushEvent(jsonString);
         }
 
         #endregion
@@ -161,7 +170,7 @@ namespace Serilog.Sinks
             return sizeof(char) * stringLength;
         }
 
-        protected override async Task<bool> WriteLogEventAsync(ICollection<LogEvent> logEventsBatch)
+        protected override async Task<bool> WriteLogEventAsync(ICollection<string> logEventsBatch)
         {
             if ((logEventsBatch == null) || (logEventsBatch.Count == 0))
                 return true;
@@ -173,16 +182,8 @@ namespace Serilog.Sinks
             var counter = 0;
 
             foreach (var logEvent in logEventsBatch) {
-                var eventObject = JObject.FromObject(
-                                              logEvent.Dictionary(
-                                                  _configurationSettings.StoreTimestampInUtc,
-                                                  _configurationSettings.FormatProvider),
-                                              _jsonSerializer)
-                                         .Flatten(_configurationSettings.Flatten);
 
-                var jsonString = JsonConvert.SerializeObject(eventObject, _jsonSerializerSettings);
-
-                if (GetStringSizeInBytes(jsonString.Length) >= MaximumMessageSize) {
+                if (GetStringSizeInBytes(logEvent.Length) >= MaximumMessageSize) {
                     if (counter > 0) {
                         counter--;
                     }
@@ -193,7 +194,7 @@ namespace Serilog.Sinks
                     continue;
                 }
 
-                if (GetStringSizeInBytes(jsonStringCollectionSize + jsonString.Length) > MaximumMessageSize) {
+                if (GetStringSizeInBytes(jsonStringCollectionSize + logEvent.Length) > MaximumMessageSize) {
                     SelfLog.WriteLine($"Sending mini batch of size {counter}");
                     result = await SendLogMessageAsync(jsonStringCollection).ConfigureAwait(false);
                     if (!result) {
@@ -204,7 +205,7 @@ namespace Serilog.Sinks
                     jsonStringCollection.Clear();
                 }
 
-                jsonStringCollection.Add(jsonString);
+                jsonStringCollection.Add(logEvent);
                 counter++;
             }
 
