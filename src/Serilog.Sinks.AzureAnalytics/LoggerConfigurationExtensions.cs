@@ -66,6 +66,8 @@ namespace Serilog
                 throw new ArgumentNullException(nameof(workspaceId));
             if (string.IsNullOrEmpty(authenticationId))
                 throw new ArgumentNullException(nameof(authenticationId));
+            if (!string.IsNullOrEmpty(logName))
+                logName = logName.Replace('.', '_');
 
             return loggerConfiguration.Sink(
                 new AzureLogAnalyticsSink(
@@ -124,6 +126,8 @@ namespace Serilog
                 throw new ArgumentNullException(nameof(workspaceId));
             if (string.IsNullOrEmpty(authenticationId))
                 throw new ArgumentNullException(nameof(authenticationId));
+            if (!string.IsNullOrEmpty(logName))
+                logName = logName.Replace('.', '_');
 
             return loggerConfiguration.Sink(
                 new AzureLogAnalyticsSink(
