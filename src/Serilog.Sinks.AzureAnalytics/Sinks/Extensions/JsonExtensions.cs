@@ -30,7 +30,7 @@ namespace Serilog.Sinks.Extensions
                 return jsonObject;
             }
 
-            var logPropToken = jsonObject.GetValue(LogPropertyName);
+            var logPropToken = jsonObject.GetValue(LogPropertyName, System.StringComparison.OrdinalIgnoreCase);
             jsonObject.Remove(LogPropertyName);
 
             jsonObject.Add(LogPropertyName, logPropToken.ToString(Newtonsoft.Json.Formatting.None, null));
