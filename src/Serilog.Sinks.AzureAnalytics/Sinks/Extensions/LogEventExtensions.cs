@@ -34,10 +34,13 @@ namespace Serilog.Sinks.Extensions
         internal static IDictionary<string, object> Dictionary(
             this LogEvent logEvent,
             bool storeTimestampInUtc = false,
-            IFormatProvider formatProvider = null)
+            IFormatProvider formatProvider = null,
+            bool preserveLogProperties = false,
+            bool simplifyLogColumnNames = false)
         {
-            return ConvertToDictionary(logEvent, storeTimestampInUtc, formatProvider);
+            return ConvertToDictionary(logEvent, storeTimestampInUtc, formatProvider, preserveLogProperties, simplifyLogColumnNames);
         }
+
 
         internal static string Json(this IReadOnlyDictionary<string, LogEventPropertyValue> properties)
         {
@@ -67,20 +70,31 @@ namespace Serilog.Sinks.Extensions
         private static dynamic ConvertToDictionary(
             LogEvent logEvent,
             bool storeTimestampInUtc,
-            IFormatProvider formatProvider = null)
+            IFormatProvider formatProvider = null,
+            bool preserveLogProperties = false,
+            bool simplifyLogColumnNames = false)
         {
             var eventObject = new ExpandoObject() as IDictionary<string, object>;
             eventObject.Add(
-                "Timestamp",
+                !simplifyLogColumnNames ? "Timestamp" : "TimeGenerated",
                 storeTimestampInUtc
                     ? logEvent.Timestamp.ToUniversalTime().ToString("o")
                     : logEvent.Timestamp.ToString("o"));
-
-            eventObject.Add("LogLevel", logEvent.Level.ToString());
-            eventObject.Add("LogMessageTemplate", logEvent.MessageTemplate.Text);
-            eventObject.Add("LogMessage", logEvent.RenderMessage(formatProvider));
-            eventObject.Add("LogException", logEvent.Exception);
-            eventObject.Add("LogProperties", logEvent.Properties.Dictionary());
+            eventObject.Add(!simplifyLogColumnNames ? "LogLevel" : nameof(logEvent.Level), logEvent.Level.ToString());
+            eventObject.Add(!simplifyLogColumnNames ? "LogMessageTemplate" : nameof(logEvent.MessageTemplate), logEvent.MessageTemplate.Text);
+            eventObject.Add(!simplifyLogColumnNames ? "LogMessage" : "Message", logEvent.RenderMessage(formatProvider));
+            eventObject.Add(!simplifyLogColumnNames ? "LogException" : nameof(logEvent.Exception), logEvent.Exception);
+            if (preserveLogProperties)
+            {
+                foreach (var property in logEvent.Properties)
+                {
+                    eventObject.Add(property.Key, Simplify(property.Value));
+                }
+            }
+            else
+            {
+                eventObject.Add("LogProperties", logEvent.Properties.Dictionary());
+            }
 
             return eventObject;
         }
