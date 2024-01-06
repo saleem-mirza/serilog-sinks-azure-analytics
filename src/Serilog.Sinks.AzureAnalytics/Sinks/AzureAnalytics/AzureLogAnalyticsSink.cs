@@ -1,4 +1,4 @@
-﻿// Copyright 2019 Zethian Inc.
+﻿// Copyright 2025 Zethian Inc.
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,15 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
@@ -29,61 +20,63 @@ using Serilog.Debugging;
 using Serilog.Events;
 using Serilog.Sinks.AzureAnalytics;
 using Serilog.Sinks.Batch;
-using Serilog.Sinks.Extensions;
+using System;
+using System.Collections.Generic;
+using System.Dynamic;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using NamingStrategy = Serilog.Sinks.AzureAnalytics.NamingStrategy;
+
 
 namespace Serilog.Sinks
 {
     internal class AzureLogAnalyticsSink : BatchProvider, ILogEventSink
     {
+        private JToken token;
+        private readonly string LoggerUriString;
         private readonly SemaphoreSlim _semaphore;
-        private readonly Uri _analyticsUrl;
-        private readonly string _authenticationId;
-        private readonly string _workSpaceId;
-        private readonly JsonSerializer _jsonSerializer;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
         private readonly ConfigurationSettings _configurationSettings;
-        private static readonly HttpClientHandler ClientHandler = new HttpClientHandler();
-        private static readonly HttpClient Client = new HttpClient(ClientHandler);
-        private const int MaximumMessageSize = 30_000_000;
+        private readonly LoggerCredential _loggerCredential;
+        private static readonly HttpClient httpClient = new HttpClient();
+        
+        const string scope = "https://monitor.azure.com//.default";
 
-        internal AzureLogAnalyticsSink(string workSpaceId, string authenticationId, ConfigurationSettings settings) :
+        internal AzureLogAnalyticsSink(LoggerCredential loggerCredential, ConfigurationSettings settings) :
             base(settings.BatchSize, settings.BufferSize)
         {
             _semaphore = new SemaphoreSlim(1, 1);
 
+            _loggerCredential = loggerCredential;
+
             _configurationSettings = settings;
 
-            _workSpaceId      = workSpaceId;
-            _authenticationId = authenticationId;
-            
-            if (!string.IsNullOrEmpty(settings.Proxy)) {
-                ClientHandler.Proxy = new WebProxy(settings.Proxy);
-                ClientHandler.UseProxy = true;
-            }
-
-            switch (settings.PropertyNamingStrategy) {
+            switch (settings.PropertyNamingStrategy)
+            {
                 case NamingStrategy.Default:
                     _jsonSerializerSettings = new JsonSerializerSettings
                     {
-                        ContractResolver      = new DefaultContractResolver()
+                        ContractResolver = new DefaultContractResolver()
                     };
 
                     break;
                 case NamingStrategy.CamelCase:
                     _jsonSerializerSettings = new JsonSerializerSettings()
                     {
-                        ContractResolver      = new CamelCasePropertyNamesContractResolver()
+                        ContractResolver = new CamelCasePropertyNamesContractResolver()
                     };
 
                     break;
                 case NamingStrategy.Application:
                     _jsonSerializerSettings = JsonConvert.DefaultSettings()
                      ?? new JsonSerializerSettings
-                        {
-                            ContractResolver      = new DefaultContractResolver()
-                        };
-
+                     {
+                         ContractResolver = new DefaultContractResolver()
+                     };
 
                     break;
                 default: throw new ArgumentOutOfRangeException();
@@ -92,60 +85,15 @@ namespace Serilog.Sinks
             _jsonSerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
             _jsonSerializerSettings.PreserveReferencesHandling = PreserveReferencesHandling.None;
             _jsonSerializerSettings.Formatting = Newtonsoft.Json.Formatting.None;
-
-            _jsonSerializer = new JsonSerializer {
-                ContractResolver = _jsonSerializerSettings.ContractResolver,
-                ReferenceLoopHandling = _jsonSerializerSettings.ReferenceLoopHandling,
-                PreserveReferencesHandling = _jsonSerializerSettings.PreserveReferencesHandling
-            };
-            _analyticsUrl = GetServiceEndpoint(settings.AzureOfferingType, _workSpaceId);
-        }
-
-        private static Uri GetServiceEndpoint(AzureOfferingType azureOfferingType, string workspaceId)
-        {
-            string offeringDomain;
-            switch (azureOfferingType) {
-                case AzureOfferingType.Public:
-                    offeringDomain = "azure.com";
-                    break;
-                case AzureOfferingType.US_Government:
-                    offeringDomain = "azure.us";
-                    break;
-                case AzureOfferingType.China:
-                    offeringDomain = "azure.cn";
-                    break;
-                default: throw new ArgumentOutOfRangeException();
+            if (_configurationSettings.MaxDepth > 0)
+            {
+                _configurationSettings.MaxDepth = _configurationSettings.MaxDepth;
             }
 
-            return new Uri(
-                $"https://{workspaceId}.ods.opinsights.{offeringDomain}/api/logs?api-version=2016-04-01");
+            token = GetAuthToken().GetAwaiter().GetResult();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", $"{token}");
+            LoggerUriString = $"{_loggerCredential.Endpoint}/dataCollectionRules/{_loggerCredential.ImmutableId}/streams/{_loggerCredential.StreamName}?api-version=2023-01-01";
         }
-
-        internal AzureLogAnalyticsSink(
-            string workSpaceId,
-            string authenticationId,
-            string logName,
-            bool storeTimestampInUtc,
-            IFormatProvider formatProvider,
-            int logBufferSize = 25_000,
-            int batchSize = 100,
-            AzureOfferingType azureOfferingType = AzureOfferingType.Public,
-            bool flattenObjects = true,
-            string proxy = null) : this(
-            workSpaceId,
-            authenticationId,
-            new ConfigurationSettings
-            {
-                FormatProvider         = formatProvider,
-                StoreTimestampInUtc    = storeTimestampInUtc,
-                AzureOfferingType      = azureOfferingType,
-                BufferSize             = logBufferSize,
-                BatchSize              = batchSize,
-                LogName                = logName,
-                PropertyNamingStrategy = NamingStrategy.Default,
-                Flatten                = flattenObjects,
-                Proxy                  = proxy
-            }) { }
 
         #region ILogEvent implementation
 
@@ -156,10 +104,6 @@ namespace Serilog.Sinks
 
         #endregion
 
-        private int GetStringSizeInBytes(int stringLength)
-        {
-            return sizeof(char) * stringLength;
-        }
 
         protected override async Task<bool> WriteLogEventAsync(ICollection<LogEvent> logEventsBatch)
         {
@@ -167,118 +111,75 @@ namespace Serilog.Sinks
                 return true;
 
             var jsonStringCollection = new List<string>();
-            var jsonStringCollectionSize = 0;
 
-            var result = true;
-            var counter = 0;
+            var logs = logEventsBatch.Select(s =>
+                {
+                    var obj = new ExpandoObject() as IDictionary<string, object>;
+                    obj.Add("TimeGenerated", DateTime.UtcNow);
+                    obj.Add("Event", s);
+                    return obj;
+                });
 
-            foreach (var logEvent in logEventsBatch) {
-                var eventObject = JObject.FromObject(
-                                              logEvent.Dictionary(
-                                                  _configurationSettings.StoreTimestampInUtc,
-                                                  _configurationSettings.FormatProvider),
-                                              _jsonSerializer)
-                                         .Flatten(_configurationSettings.Flatten);
-
-                var jsonString = JsonConvert.SerializeObject(eventObject, _jsonSerializerSettings);
-
-                if (GetStringSizeInBytes(jsonString.Length) >= MaximumMessageSize) {
-                    if (counter > 0) {
-                        counter--;
-                    }
-
-                    SelfLog.WriteLine("Log size is more than 30 MB. Consider sending smaller message");
-                    SelfLog.WriteLine("Dropping invalid log message");
-
-                    continue;
-                }
-
-                if (GetStringSizeInBytes(jsonStringCollectionSize + jsonString.Length) > MaximumMessageSize) {
-                    SelfLog.WriteLine($"Sending mini batch of size {counter}");
-                    result = await SendLogMessageAsync(jsonStringCollection).ConfigureAwait(false);
-                    if (!result) {
-                        return false;
-                    }
-
-                    counter = 0;
-                    jsonStringCollection.Clear();
-                }
-
-                jsonStringCollection.Add(jsonString);
-                counter++;
-            }
-
-            if (counter < logEventsBatch.Count) {
-                SelfLog.WriteLine($"Sending mini batch of size {counter}");
-            }
-
-            return result && await SendLogMessageAsync(jsonStringCollection).ConfigureAwait(false);
+            return await PostDataAsync(logs);
         }
-
-        private async Task<bool> SendLogMessageAsync(List<string> jsonStringCollection)
+        private async Task<JToken> GetAuthToken()
         {
-            if (jsonStringCollection is null) {
+            var uri = $"https://login.microsoftonline.com/{_loggerCredential.TenantId}/oauth2/v2.0/token";
+
+            var content = new FormUrlEncodedContent(new[]{
+                    new KeyValuePair<string, string>("client_id",_loggerCredential.ClientId),
+                    new KeyValuePair<string, string>("scope", scope),
+                    new KeyValuePair<string, string>("client_secret", _loggerCredential.ClientSecret),
+                    new KeyValuePair<string, string>("grant_type", "client_credentials")
+                });
+
+            var response = httpClient.PostAsync(uri, content).GetAwaiter().GetResult();
+            if (!response.IsSuccessStatusCode)
+            {
+                SelfLog.WriteLine(response.ReasonPhrase);
                 return false;
             }
 
-            if (!jsonStringCollection.Any()) {
+            var responseObject = (JObject)JsonConvert.DeserializeObject(
+                await response.Content.ReadAsStringAsync()
+            );
+
+            if (responseObject == null)
+            {
+                SelfLog.WriteLine("Invalid response");
                 return false;
             }
 
-            return await PostDataAsync(jsonStringCollection).ConfigureAwait(false);
+            return responseObject.GetValue("access_token");
         }
 
-        private static string BuildSignature(int contentLength, string dateString, string key)
+        private async Task<bool> PostDataAsync(IEnumerable<IDictionary<string, object>> logs)
         {
-            var stringToHash =
-                "POST\n" + contentLength + "\napplication/json\n" + "x-ms-date:" + dateString + "\n/api/logs";
+            try
+            {
+                await _semaphore.WaitAsync();
 
-            var encoding = new UTF8Encoding();
-            var keyByte = Convert.FromBase64String(key);
-            var messageBytes = encoding.GetBytes(stringToHash);
-            using (var hmacsha256 = new HMACSHA256(keyByte)) {
-                return Convert.ToBase64String(hmacsha256.ComputeHash(messageBytes));
-            }
-        }
+                var jsonContent = new StringContent(
+                    JsonConvert.SerializeObject(logs, _jsonSerializerSettings), Encoding.UTF8, "application/json");
 
-        private async Task<bool> PostDataAsync(List<string> jsonStringCollection)
-        {
-            try {
-                await _semaphore.WaitAsync().ConfigureAwait(false);
+                var response = httpClient.PostAsync(LoggerUriString, jsonContent).GetAwaiter().GetResult();
 
-                var logEventJsonString = $"[{string.Join(",", jsonStringCollection.ToArray())}]";
-                var contentLength = Encoding.UTF8.GetByteCount(logEventJsonString);
-
-                var dateString = DateTime.UtcNow.ToString("r");
-                var hashedString = BuildSignature(contentLength, dateString, _authenticationId);
-                var signature = $"SharedKey {_workSpaceId}:{hashedString}";
-
-                Client.DefaultRequestHeaders.Clear();
-                Client.DefaultRequestHeaders.Add("Authorization", signature);
-                Client.DefaultRequestHeaders.Add("x-ms-date", dateString);
-
-                var stringContent = new StringContent(logEventJsonString);
-                stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
-                stringContent.Headers.Add("Log-Type", _configurationSettings.LogName);
-
-                var response = Client.PostAsync(_analyticsUrl, stringContent).GetAwaiter().GetResult();
-                var message = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-                if (response.IsSuccessStatusCode) {
-                    SelfLog.WriteLine("Transferring log: [{0}]", response.ReasonPhrase);
-                }
-                else {
-                    SelfLog.WriteLine("Transferring log: [{0}] {1}", response.ReasonPhrase, message);
+                if (!response.IsSuccessStatusCode)
+                {
+                    SelfLog.WriteLine(response.ReasonPhrase);
+                    token = await GetAuthToken();
+                    return false;
                 }
 
                 return response.IsSuccessStatusCode;
             }
-            catch (Exception ex) {
-                SelfLog.WriteLine("ERROR: " + (ex.InnerException ?? ex).Message);
-
+            catch (Exception ex)
+            {
+                SelfLog.WriteLine(ex.Message);
                 return false;
             }
-            finally {
+            finally
+            {
                 _semaphore.Release();
             }
         }
