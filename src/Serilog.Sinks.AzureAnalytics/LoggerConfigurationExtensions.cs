@@ -30,7 +30,7 @@ namespace Serilog
         )
         {
             return loggerConfiguration.Sink(
-                new AzureLogAnalyticsSink(credentials, configSettings),
+                new AzureLogAnalyticsSink(credentials, configSettings = new ConfigurationSettings()),
                 restrictedToMinimumLevel: configSettings.MinLogLevel,
                 levelSwitch: configSettings.LevelSwitch
             );
