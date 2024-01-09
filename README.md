@@ -30,6 +30,18 @@ var logger = new LoggerConfiguration()
 
 ## JSON appsettings configuration
 
+```PowerShell
+Install-Package Serilog.Settings.AppSettings
+```
+In your code, call `ReadFrom.AppSettings()`
+
+```C#
+var logger = new LoggerConfiguration()
+    .ReadFrom.AppSettings()
+    .CreateLogger();
+```
+
+
 To configure AzureLogAnalytics sink in `appsettings.json`, in your code, call:
 
 ```C#
@@ -74,14 +86,4 @@ In your `appsettings.json` file, configure following:
 }
 ```
 
-```PowerShell
-Install-Package Serilog.Settings.AppSettings
-```
-In your code, call `ReadFrom.AppSettings()`
-
-```C#
-var logger = new LoggerConfiguration()
-    .ReadFrom.AppSettings()
-    .CreateLogger();
-```
-
+[Tutorial: Send data to Azure Monitor Logs with Logs ingestion API (Azure portal)](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal) is good resource to configure environment for Log Ingestion API in Azure portal. 
