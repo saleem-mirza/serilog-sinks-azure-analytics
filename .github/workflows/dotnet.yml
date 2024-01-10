@@ -22,9 +22,10 @@ jobs:
         dotnet-version: 8.0.x
     - name: Display the path
       shell: bash
+      working-directory: src
       run: pwd
     - name: Restore dependencies
-      working-directory: ../../src
+      working-directory: src
       run: dotnet restore 
     - name: Build
       working-directory: src
