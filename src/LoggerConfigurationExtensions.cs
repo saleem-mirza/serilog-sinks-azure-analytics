@@ -14,7 +14,7 @@
 
 using Serilog.Configuration;
 using Serilog.Sinks;
-using Serilog.Sinks.AzureAnalytics;
+using Serilog.Sinks.AzureLogAnalytics;
 
 namespace Serilog
 {
@@ -23,7 +23,7 @@ namespace Serilog
     /// </summary>
     public static class LoggerConfigurationExtensions
     {
-        public static LoggerConfiguration AzureAnalytics(
+        public static LoggerConfiguration AzureLogAnalytics(
             this LoggerSinkConfiguration loggerConfiguration,
             LoggerCredential credentials,
             ConfigurationSettings configSettings

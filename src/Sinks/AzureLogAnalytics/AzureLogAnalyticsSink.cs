@@ -18,7 +18,7 @@ using Newtonsoft.Json.Serialization;
 using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;
-using Serilog.Sinks.AzureAnalytics;
+using Serilog.Sinks.AzureLogAnalytics;
 using Serilog.Sinks.Batch;
 using System;
 using System.Collections.Generic;
@@ -29,7 +29,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using NamingStrategy = Serilog.Sinks.AzureAnalytics.NamingStrategy;
+using NamingStrategy = Serilog.Sinks.AzureLogAnalytics.NamingStrategy;
 
 
 namespace Serilog.Sinks

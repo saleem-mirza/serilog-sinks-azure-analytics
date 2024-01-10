@@ -1,12 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <AssemblyTitle>Serilog.Sinks.AzureAnalytics</AssemblyTitle>
+        <AssemblyTitle>Serilog.Sinks.AzureLogAnalytics</AssemblyTitle>
         <Authors>Saleem Mirza</Authors>
-        <AssemblyName>Serilog.Sinks.AzureAnalytics</AssemblyName>
+        <AssemblyName>Serilog.Sinks.AzureLogAnalytics</AssemblyName>
         <Description>Serilog event sink that writes to Azure Analytics</Description>
-        <PackageId>Serilog.Sinks.AzureAnalytics</PackageId>
-        <PackageTags>serilog;logging;Azure;Analytics</PackageTags>
-        <PackageIconUrl>http://serilog.net/images/serilog-sink-nuget.png</PackageIconUrl>
+        <PackageId>Serilog.Sinks.AzureLogAnalytics</PackageId>
+        <PackageTags>serilog;logging;Azure;Analytics;Log Ingestion;API</PackageTags>
         <PackageProjectUrl>https://github.com/saleem-mirza/serilog-sinks-azure-analytics</PackageProjectUrl>
         <RepositoryUrl>https://github.com/saleem-mirza/serilog-sinks-azure-analytics</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
@@ -17,17 +16,26 @@
         <AssemblyOriginatorKeyFile>Serilog.snk</AssemblyOriginatorKeyFile>
         <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
         <RootNamespace>Serilog</RootNamespace>
+        <PackageIcon>serilog-sink-nuget.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
     <PropertyGroup>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
     </PropertyGroup>
+    <ItemGroup>
+        <None Include="images\serilog-sink-nuget.png" Pack="true" PackagePath="\"/>
+    </ItemGroup>
     <ItemGroup>
       <Compile Remove="Properties\**" />
       <EmbeddedResource Remove="Properties\**" />
       <None Remove="Properties\**" />
     </ItemGroup>
     <ItemGroup>
-        <None Include="..\..\LICENSE">
+        <None Include="..\LICENSE">
+            <Pack>true</Pack>
+            <PackagePath></PackagePath>
+        </None>
+        <None Include="..\README.md">
             <Pack>true</Pack>
             <PackagePath></PackagePath>
         </None>

@@ -1,12 +1,12 @@
-# Serilog.Sinks.AzureAnalytics
+# Serilog.Sinks.AzureLogAnalytics
 High performance Serilog sink that writes to Azure Log Analytics. It supports automatic batching of log messages for better performance and auto-recovery from transient errors.
 
 
 ## Getting started
-Install [Serilog.Sinks.AzureAnalytics](https://www.nuget.org/packages/serilog.sinks.azureanalytics) from NuGet
+Install [Serilog.Sinks.AzureLogAnalytics](https://www.nuget.org/packages/serilog.sinks.AzureLogAnalytics) from NuGet
 
 ```PowerShell
-Install-Package Serilog.Sinks.AzureAnalytics
+Install-Package Serilog.Sinks.AzureLogAnalytics
 ```
 
 Configure logger by calling `WriteTo.AzureLogAnalytics(<credentials>, <configSettings>)`
@@ -61,11 +61,11 @@ In your `appsettings.json` file, configure following:
 ```JSON
 {
   "Serilog": {
-    "Using": [ "Serilog.Sinks.AzureAnalytics" ],
+    "Using": [ "Serilog.Sinks.AzureLogAnalytics" ],
     "MinimumLevel": "Verbose",
     "WriteTo": [
       {
-        "Name": "AzureAnalytics",
+        "Name": "AzureLogAnalytics",
         "Args": {
           "credentials": {
             "endpoint": "https://****.****.ingest.monitor.azure.com",

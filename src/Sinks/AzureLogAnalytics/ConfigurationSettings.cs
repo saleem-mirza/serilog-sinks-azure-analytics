@@ -2,7 +2,7 @@
 using Serilog.Events;
 using System;
 
-namespace Serilog.Sinks.AzureAnalytics
+namespace Serilog.Sinks.AzureLogAnalytics
 {
     public class ConfigurationSettings
     {
