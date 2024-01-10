@@ -1,8 +1,9 @@
 # Serilog.Sinks.AzureLogAnalytics
+
 High performance Serilog sink that writes to Azure Log Analytics. It supports automatic batching of log messages for better performance and auto-recovery from transient errors.
 
-
 ## Getting started
+
 Install [Serilog.Sinks.AzureLogAnalytics](https://www.nuget.org/packages/serilog.sinks.AzureLogAnalytics) from NuGet
 
 ```PowerShell
@@ -12,6 +13,7 @@ Install-Package Serilog.Sinks.AzureLogAnalytics
 Configure logger by calling `WriteTo.AzureLogAnalytics(<credentials>, <configSettings>)`
 
 > `credentials`: A structure with required information to access Azure Log Ingestion API. to  from Azure OMS Portal connected sources. This parameter accepts:
+
 ```
 endpoint:     Logs Ingestion URL for data collection endpoint.
 immutableId:  ImmutableId for Data Collection Rules (DCR)
@@ -33,6 +35,7 @@ var logger = new LoggerConfiguration()
 ```PowerShell
 Install-Package Serilog.Settings.AppSettings
 ```
+
 In your code, call `ReadFrom.AppSettings()`
 
 ```C#
@@ -40,7 +43,6 @@ var logger = new LoggerConfiguration()
     .ReadFrom.AppSettings()
     .CreateLogger();
 ```
-
 
 To configure AzureLogAnalytics sink in `appsettings.json`, in your code, call:
 
@@ -56,6 +58,7 @@ var logger = new LoggerConfiguration()
                          .ReadFrom.Configuration(configuration)
                          .CreateLogger();
 ```
+
 In your `appsettings.json` file, configure following:
 
 ```JSON
@@ -86,4 +89,4 @@ In your `appsettings.json` file, configure following:
 }
 ```
 
-[Tutorial: Send data to Azure Monitor Logs with Logs ingestion API (Azure portal)](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal) is good resource to configure environment for Log Ingestion API in Azure portal. 
+[Tutorial: Send data to Azure Monitor Logs with Logs ingestion API (Azure portal)](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal) is good resource to configure environment for Log Ingestion API in Azure portal.
