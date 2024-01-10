@@ -22,7 +22,7 @@ jobs:
         dotnet-version: 8.0.x
     - name: Display the path
       shell: bash
-      run: echo $PATH
+      run: pwd
     - name: Restore dependencies
       working-directory: ../../src
       run: dotnet restore 
