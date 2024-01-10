@@ -21,12 +21,12 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Restore dependencies
-      working-directory: ./src
+      working-directory: /src
       run: dotnet restore 
     - name: Build
-      working-directory: ./src
+      working-directory: /src
       run: dotnet build --no-restore restore
     - name: Package 
-      working-directory: ./src
+      working-directory: /src
       run: dotnet pack
 
