@@ -7,7 +7,11 @@ High performance Serilog sink that writes to Azure Log Analytics. It supports au
 Install [Serilog.Sinks.AzureLogAnalytics](https://www.nuget.org/packages/serilog.sinks.AzureLogAnalytics) from NuGet
 
 ```PowerShell
+Install-Package Serilog
+Install-Package Serilog.Settings.Configuration
 Install-Package Serilog.Sinks.AzureLogAnalytics
+Install-Package Microsoft.Extensions.Configuration.Json
+
 ```
 
 Configure logger by calling `WriteTo.AzureLogAnalytics(<credentials>, <configSettings>)`
@@ -25,39 +29,13 @@ clientSecret: Client secret for registered Engra Application
 >
 
 ```C#
-var logger = new LoggerConfiguration()
+Log.Logger = new LoggerConfiguration()
     .WriteTo.AzureLogAnalytics(<credentials>, <configSettings>)
     .CreateLogger();
 ```
 
 ## JSON appsettings configuration
 
-```PowerShell
-Install-Package Serilog.Settings.AppSettings
-```
-
-In your code, call `ReadFrom.AppSettings()`
-
-```C#
-var logger = new LoggerConfiguration()
-    .ReadFrom.AppSettings()
-    .CreateLogger();
-```
-
-To configure AzureLogAnalytics sink in `appsettings.json`, in your code, call:
-
-```C#
-var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-var configuration = new ConfigurationBuilder()
-                    .AddJsonFile("appsettings.json")
-                    .AddJsonFile($"appsettings.{environment}.json")
-                    .AddEnvironmentVariables()
-                    .Build();
-
-var logger = new LoggerConfiguration()
-                         .ReadFrom.Configuration(configuration)
-                         .CreateLogger();
-```
 
 In your `appsettings.json` file, configure following:
 
@@ -87,6 +65,18 @@ In your `appsettings.json` file, configure following:
     ]
   }
 }
+```
+
+To configure and instanciate AzureLogAnalytics sink in `appsettings.json`, in your code, call:
+
+```C#
+
+var configuration = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json").Build();
+
+Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(configuration)
+                .CreateLogger();
 ```
 
 [Tutorial: Send data to Azure Monitor Logs with Logs ingestion API (Azure portal)](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal) is good resource to configure environment for Log Ingestion API in Azure portal.
