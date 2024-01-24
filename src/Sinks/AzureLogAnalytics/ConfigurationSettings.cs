@@ -58,7 +58,6 @@ namespace Serilog.Sinks.AzureLogAnalytics
     public enum NamingStrategy
     {
         Default = 0,
-        CamelCase = 1,
-        Application = 2
+        CamelCase = 1
     }
 }

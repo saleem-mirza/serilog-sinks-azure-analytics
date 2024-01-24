@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
 using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;
@@ -27,23 +24,24 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using NamingStrategy = Serilog.Sinks.AzureLogAnalytics.NamingStrategy;
-
+using System.Text.Json.Serialization;
 
 namespace Serilog.Sinks
 {
     internal class AzureLogAnalyticsSink : BatchProvider, ILogEventSink
     {
-        private JToken token;
+        private string token;
         private readonly string LoggerUriString;
         private readonly SemaphoreSlim _semaphore;
-        private readonly JsonSerializerSettings _jsonSerializerSettings;
+        private readonly JsonSerializerOptions _jsonOptions;
         private readonly ConfigurationSettings _configurationSettings;
         private readonly LoggerCredential _loggerCredential;
         private static readonly HttpClient httpClient = new HttpClient();
-        
+
         const string scope = "https://monitor.azure.com//.default";
 
         internal AzureLogAnalyticsSink(LoggerCredential loggerCredential, ConfigurationSettings settings) :
@@ -58,39 +56,28 @@ namespace Serilog.Sinks
             switch (settings.PropertyNamingStrategy)
             {
                 case NamingStrategy.Default:
-                    _jsonSerializerSettings = new JsonSerializerSettings
-                    {
-                        ContractResolver = new DefaultContractResolver()
-                    };
+                    _jsonOptions = new JsonSerializerOptions();
 
                     break;
                 case NamingStrategy.CamelCase:
-                    _jsonSerializerSettings = new JsonSerializerSettings()
+                    _jsonOptions = new JsonSerializerOptions()
                     {
-                        ContractResolver = new CamelCasePropertyNamesContractResolver()
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     };
-
-                    break;
-                case NamingStrategy.Application:
-                    _jsonSerializerSettings = JsonConvert.DefaultSettings()
-                     ?? new JsonSerializerSettings
-                     {
-                         ContractResolver = new DefaultContractResolver()
-                     };
 
                     break;
                 default: throw new ArgumentOutOfRangeException();
             }
 
-            _jsonSerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
-            _jsonSerializerSettings.PreserveReferencesHandling = PreserveReferencesHandling.None;
-            _jsonSerializerSettings.Formatting = Newtonsoft.Json.Formatting.None;
+            _jsonOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+            _jsonOptions.WriteIndented = false;
             if (_configurationSettings.MaxDepth > 0)
             {
                 _configurationSettings.MaxDepth = _configurationSettings.MaxDepth;
             }
 
             token = GetAuthToken().GetAwaiter().GetResult();
+
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", $"{token}");
             LoggerUriString = $"{_loggerCredential.Endpoint}/dataCollectionRules/{_loggerCredential.ImmutableId}/streams/{_loggerCredential.StreamName}?api-version=2023-01-01";
         }
@@ -110,6 +97,12 @@ namespace Serilog.Sinks
             if ((logEventsBatch == null) || (logEventsBatch.Count == 0))
                 return true;
 
+            if (string.IsNullOrEmpty(token))
+            {
+                SelfLog.WriteLine("Unable to authenticate with Azure. Revalidate credentials and try again");
+                return false;
+            }
+
             var jsonStringCollection = new List<string>();
 
             var logs = logEventsBatch.Select(s =>
@@ -122,7 +115,7 @@ namespace Serilog.Sinks
 
             return await PostDataAsync(logs);
         }
-        private async Task<JToken> GetAuthToken()
+        private async Task<string> GetAuthToken()
         {
             var uri = $"https://login.microsoftonline.com/{_loggerCredential.TenantId}/oauth2/v2.0/token";
 
@@ -137,20 +130,18 @@ namespace Serilog.Sinks
             if (!response.IsSuccessStatusCode)
             {
                 SelfLog.WriteLine(response.ReasonPhrase);
-                return false;
+                return string.Empty;
             }
 
-            var responseObject = (JObject)JsonConvert.DeserializeObject(
-                await response.Content.ReadAsStringAsync()
-            );
+            var responseObject = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
             if (responseObject == null)
             {
                 SelfLog.WriteLine("Invalid response");
-                return false;
+                return string.Empty;
             }
 
-            return responseObject.GetValue("access_token");
+            return responseObject.RootElement.GetProperty("access_token").GetString();
         }
 
         private async Task<bool> PostDataAsync(IEnumerable<IDictionary<string, object>> logs)
@@ -159,8 +150,8 @@ namespace Serilog.Sinks
             {
                 await _semaphore.WaitAsync();
 
-                var jsonContent = new StringContent(
-                    JsonConvert.SerializeObject(logs, _jsonSerializerSettings), Encoding.UTF8, "application/json");
+                var jsonString = JsonSerializer.Serialize(logs, _jsonOptions);
+                var jsonContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
 
                 var response = httpClient.PostAsync(LoggerUriString, jsonContent).GetAwaiter().GetResult();
 
