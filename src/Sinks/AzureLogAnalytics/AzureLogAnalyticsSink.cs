@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using Azure.Core;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
@@ -124,6 +125,14 @@ namespace Serilog.Sinks
         }
         private async Task<JToken> GetAuthToken()
         {
+            if (_loggerCredential.TokenCredential != null)
+            {
+                var tokenContext = new TokenRequestContext(new String[] { scope });
+                var cancellationToken = new CancellationToken();
+                var access_token = await _loggerCredential.TokenCredential.GetTokenAsync(tokenContext, cancellationToken);
+                return access_token.Token;
+            }
+
             var uri = $"https://login.microsoftonline.com/{_loggerCredential.TenantId}/oauth2/v2.0/token";
 
             var content = new FormUrlEncodedContent(new[]{
