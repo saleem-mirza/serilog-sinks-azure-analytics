@@ -1,3 +1,4 @@
+using Azure.Core;
 using System;
 
 namespace Serilog.Sinks.AzureLogAnalytics
@@ -10,5 +11,6 @@ namespace Serilog.Sinks.AzureLogAnalytics
         public String TenantId { get; set; }
         public String ClientId { get; set; }
         public String ClientSecret { get; set; }
+        public TokenCredential TokenCredential { get; set; }
     }
 }
