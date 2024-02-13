@@ -25,7 +25,7 @@ streamName:      Output stream name of target (Log Analytics API, can be accesse
 tenantId:        Directory (tenant) Id of registered application (Microsoft Entra ID)
 clientId:        Application (client) Id of Microsoft Entra application
 clientSecret:    Client secret for registered Engra Application
-TokenCredential: An Azure Token Credntial provider implementing the Azure.Core.TokenCredential abstract class (Optional if clientSecret and clientId is provided
+TokenCredential: An Azure Token Credntial provider implementing the Azure.Core.TokenCredential abstract class (Optional if clientSecret and clientId is provided)
 ```
 >
 
