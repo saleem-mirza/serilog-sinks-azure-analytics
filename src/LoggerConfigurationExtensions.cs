@@ -29,8 +29,12 @@ namespace Serilog
             ConfigurationSettings configSettings
         )
         {
+            if (configSettings == null)
+            {
+                configSettings = new ConfigurationSettings();
+            }
             return loggerConfiguration.Sink(
-                new AzureLogAnalyticsSink(credentials, configSettings = new ConfigurationSettings()),
+                new AzureLogAnalyticsSink(credentials, configSettings),
                 restrictedToMinimumLevel: configSettings.MinLogLevel,
                 levelSwitch: configSettings.LevelSwitch
             );
