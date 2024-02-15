@@ -111,6 +111,7 @@ namespace Serilog.Sinks
                     var obj = new ExpandoObject() as IDictionary<string, object>;
                     obj.Add("TimeGenerated", DateTime.UtcNow);
                     obj.Add("Event", s);
+                    obj.Add("Message", s.RenderMessage());
                     return obj;
                 });
 
