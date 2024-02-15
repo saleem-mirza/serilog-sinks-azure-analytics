@@ -30,6 +30,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NamingStrategy = Serilog.Sinks.AzureLogAnalytics.NamingStrategy;
 using System.Text.Json.Serialization;
+using Serilog.Formatting;
 
 namespace Serilog.Sinks
 {
@@ -45,7 +46,7 @@ namespace Serilog.Sinks
 
         const string scope = "https://monitor.azure.com//.default";
 
-        internal AzureLogAnalyticsSink(LoggerCredential loggerCredential, ConfigurationSettings settings) :
+        internal AzureLogAnalyticsSink(LoggerCredential loggerCredential, ConfigurationSettings settings, ITextFormatter formatter) :
             base(settings.BatchSize, settings.BufferSize)
         {
             _semaphore = new SemaphoreSlim(1, 1);
@@ -72,6 +73,7 @@ namespace Serilog.Sinks
 
             _jsonOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
             _jsonOptions.WriteIndented = false;
+            _jsonOptions.Converters.Add(new LoggerJsonConverter(formatter));
             if (_configurationSettings.MaxDepth > 0)
             {
                 _configurationSettings.MaxDepth = _configurationSettings.MaxDepth;
