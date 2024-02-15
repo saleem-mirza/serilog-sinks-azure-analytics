@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using Serilog.Configuration;
+using Serilog.Formatting;
 using Serilog.Sinks;
 using Serilog.Sinks.AzureLogAnalytics;
 
@@ -29,8 +30,30 @@ namespace Serilog
             ConfigurationSettings configSettings
         )
         {
+            if (configSettings == null)
+            {
+                configSettings = new ConfigurationSettings();
+            }
             return loggerConfiguration.Sink(
-                new AzureLogAnalyticsSink(credentials, configSettings = new ConfigurationSettings()),
+                new AzureLogAnalyticsSink(credentials, configSettings, null),
+                restrictedToMinimumLevel: configSettings.MinLogLevel,
+                levelSwitch: configSettings.LevelSwitch
+            );
+        }
+
+        public static LoggerConfiguration AzureLogAnalytics(
+            this LoggerSinkConfiguration loggerConfiguration,
+            ITextFormatter formatter,
+            LoggerCredential credentials,
+            ConfigurationSettings configSettings
+)
+        {
+            if (configSettings == null)
+            {
+                configSettings = new ConfigurationSettings();
+            }
+            return loggerConfiguration.Sink(
+                new AzureLogAnalyticsSink(credentials, configSettings, formatter),
                 restrictedToMinimumLevel: configSettings.MinLogLevel,
                 levelSwitch: configSettings.LevelSwitch
             );
