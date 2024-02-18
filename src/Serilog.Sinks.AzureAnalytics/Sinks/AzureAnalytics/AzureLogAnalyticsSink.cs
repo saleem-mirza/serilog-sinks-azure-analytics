@@ -24,19 +24,17 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
-using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;
 using Serilog.Sinks.AzureAnalytics;
-using Serilog.Sinks.Batch;
 using Serilog.Sinks.Extensions;
+using Serilog.Sinks.PeriodicBatching;
 using NamingStrategy = Serilog.Sinks.AzureAnalytics.NamingStrategy;
 
 namespace Serilog.Sinks
 {
-    internal class AzureLogAnalyticsSink : BatchProvider, ILogEventSink
+    internal class AzureLogAnalyticsSink : IBatchedLogEventSink
     {
-        private readonly SemaphoreSlim _semaphore;
         private readonly Uri _analyticsUrl;
         private readonly string _authenticationId;
         private readonly string _workSpaceId;
@@ -46,12 +44,10 @@ namespace Serilog.Sinks
         private static readonly HttpClientHandler ClientHandler = new HttpClientHandler();
         private static readonly HttpClient Client = new HttpClient(ClientHandler);
         private const int MaximumMessageSize = 30_000_000;
+        private const int TargetMessageSize = 1_000_000;
 
-        internal AzureLogAnalyticsSink(string workSpaceId, string authenticationId, ConfigurationSettings settings) :
-            base(settings.BatchSize, settings.BufferSize)
+        internal AzureLogAnalyticsSink(string workSpaceId, string authenticationId, ConfigurationSettings settings) 
         {
-            _semaphore = new SemaphoreSlim(1, 1);
-
             _configurationSettings = settings;
 
             _workSpaceId      = workSpaceId;
@@ -127,10 +123,10 @@ namespace Serilog.Sinks
             string logName,
             bool storeTimestampInUtc,
             IFormatProvider formatProvider,
-            int logBufferSize = 25_000,
-            int batchSize = 100,
+            int? logBufferSize,
+            int batchSize,
             AzureOfferingType azureOfferingType = AzureOfferingType.Public,
-            bool flattenObjects = true,
+            bool flattenObject = true,
             string proxy = null) : this(
             workSpaceId,
             authenticationId,
@@ -143,89 +139,13 @@ namespace Serilog.Sinks
                 BatchSize              = batchSize,
                 LogName                = logName,
                 PropertyNamingStrategy = NamingStrategy.Default,
-                Flatten                = flattenObjects,
+                Flatten                = flattenObject,
                 Proxy                  = proxy
             }) { }
-
-        #region ILogEvent implementation
-
-        public void Emit(LogEvent logEvent)
-        {
-            PushEvent(logEvent);
-        }
-
-        #endregion
 
         private int GetStringSizeInBytes(int stringLength)
         {
             return sizeof(char) * stringLength;
-        }
-
-        protected override async Task<bool> WriteLogEventAsync(ICollection<LogEvent> logEventsBatch)
-        {
-            if ((logEventsBatch == null) || (logEventsBatch.Count == 0))
-                return true;
-
-            var jsonStringCollection = new List<string>();
-            var jsonStringCollectionSize = 0;
-
-            var result = true;
-            var counter = 0;
-
-            foreach (var logEvent in logEventsBatch) {
-                var eventObject = JObject.FromObject(
-                                              logEvent.Dictionary(
-                                                  _configurationSettings.StoreTimestampInUtc,
-                                                  _configurationSettings.FormatProvider),
-                                              _jsonSerializer)
-                                         .Flatten(_configurationSettings.Flatten);
-
-                var jsonString = JsonConvert.SerializeObject(eventObject, _jsonSerializerSettings);
-
-                if (GetStringSizeInBytes(jsonString.Length) >= MaximumMessageSize) {
-                    if (counter > 0) {
-                        counter--;
-                    }
-
-                    SelfLog.WriteLine("Log size is more than 30 MB. Consider sending smaller message");
-                    SelfLog.WriteLine("Dropping invalid log message");
-
-                    continue;
-                }
-
-                if (GetStringSizeInBytes(jsonStringCollectionSize + jsonString.Length) > MaximumMessageSize) {
-                    SelfLog.WriteLine($"Sending mini batch of size {counter}");
-                    result = await SendLogMessageAsync(jsonStringCollection).ConfigureAwait(false);
-                    if (!result) {
-                        return false;
-                    }
-
-                    counter = 0;
-                    jsonStringCollection.Clear();
-                }
-
-                jsonStringCollection.Add(jsonString);
-                counter++;
-            }
-
-            if (counter < logEventsBatch.Count) {
-                SelfLog.WriteLine($"Sending mini batch of size {counter}");
-            }
-
-            return result && await SendLogMessageAsync(jsonStringCollection).ConfigureAwait(false);
-        }
-
-        private async Task<bool> SendLogMessageAsync(List<string> jsonStringCollection)
-        {
-            if (jsonStringCollection is null) {
-                return false;
-            }
-
-            if (!jsonStringCollection.Any()) {
-                return false;
-            }
-
-            return await PostDataAsync(jsonStringCollection).ConfigureAwait(false);
         }
 
         private static string BuildSignature(int contentLength, string dateString, string key)
@@ -241,46 +161,108 @@ namespace Serilog.Sinks
             }
         }
 
-        private async Task<bool> PostDataAsync(List<string> jsonStringCollection)
+        /// <summary>
+        /// Send the data to Azure Log Analytics
+        /// </summary>
+        /// <param name="jsonStringCollection"></param>
+        /// <remarks>There is no retry action - it is presumed that is handled higher up.</remarks>
+        private async Task PostDataAsync(List<string> jsonStringCollection)
         {
-            try {
-                await _semaphore.WaitAsync().ConfigureAwait(false);
+            var logEventJsonString = $"[{string.Join(",", jsonStringCollection.ToArray())}]";
+            var contentLength = Encoding.UTF8.GetByteCount(logEventJsonString);
 
-                var logEventJsonString = $"[{string.Join(",", jsonStringCollection.ToArray())}]";
-                var contentLength = Encoding.UTF8.GetByteCount(logEventJsonString);
+            var dateString = DateTime.UtcNow.ToString("r");
+            var hashedString = BuildSignature(contentLength, dateString, _authenticationId);
+            var signature = $"SharedKey {_workSpaceId}:{hashedString}";
 
-                var dateString = DateTime.UtcNow.ToString("r");
-                var hashedString = BuildSignature(contentLength, dateString, _authenticationId);
-                var signature = $"SharedKey {_workSpaceId}:{hashedString}";
+            var stringContent = new StringContent(logEventJsonString);
+            stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
+            stringContent.Headers.Add("Log-Type", _configurationSettings.LogName);
 
-                Client.DefaultRequestHeaders.Clear();
-                Client.DefaultRequestHeaders.Add("Authorization", signature);
-                Client.DefaultRequestHeaders.Add("x-ms-date", dateString);
+            using (var request = new HttpRequestMessage(HttpMethod.Post, _analyticsUrl))
+            {
+                request.Content = stringContent;
+                request.Headers.Authorization = AuthenticationHeaderValue.Parse(signature);
+                request.Headers.Add("x-ms-date", dateString);
 
-                var stringContent = new StringContent(logEventJsonString);
-                stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
-                stringContent.Headers.Add("Log-Type", _configurationSettings.LogName);
-
-                var response = Client.PostAsync(_analyticsUrl, stringContent).GetAwaiter().GetResult();
+                var response = await Client.SendAsync(request).ConfigureAwait(false);
                 var message = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                if (response.IsSuccessStatusCode) {
+                if (response.IsSuccessStatusCode)
+                {
                     SelfLog.WriteLine("Transferring log: [{0}]", response.ReasonPhrase);
                 }
-                else {
+                else
+                {
                     SelfLog.WriteLine("Transferring log: [{0}] {1}", response.ReasonPhrase, message);
                 }
 
-                return response.IsSuccessStatusCode;
+                //throw an exception on failure.
+                response.EnsureSuccessStatusCode();
             }
-            catch (Exception ex) {
-                SelfLog.WriteLine("ERROR: " + (ex.InnerException ?? ex).Message);
+        }
 
-                return false;
+        /// <inheritdoc />
+        public async Task EmitBatchAsync(IEnumerable<LogEvent> batch)
+        {
+            var jsonStringCollection = new List<string>();
+            var jsonStringCollectionSize = 0;
+
+            var postTasks = new List<Task>();
+
+            foreach (var logEvent in batch)
+            {
+                var eventObject = JObject.FromObject(
+                        logEvent.Dictionary(
+                            _configurationSettings.StoreTimestampInUtc,
+                            _configurationSettings.FormatProvider),
+                        _jsonSerializer)
+                    .Flatten(_configurationSettings.Flatten);
+
+                var jsonString = JsonConvert.SerializeObject(eventObject, _jsonSerializerSettings);
+
+                //Protect against a single, over-sized message we can't write out.
+                var messageSize = GetStringSizeInBytes(jsonString.Length);
+                if (messageSize >= MaximumMessageSize)
+                {
+                    SelfLog.WriteLine("Log size is more than 30 MB. Consider sending smaller message");
+                    SelfLog.WriteLine("Dropping invalid log message");
+
+                    continue;
+                }
+
+                //Now see if we've got a large enough message we really needs to send now...
+                if ((jsonStringCollectionSize + messageSize) > TargetMessageSize)
+                {
+                    SelfLog.WriteLine($"Sending batch of log messages to Log Analytics of size {jsonStringCollectionSize}");
+                    postTasks.Add(PostDataAsync(jsonStringCollection));
+
+                    //and reset our collection since we've sent them.
+                    jsonStringCollection = new List<string> ();
+                    jsonStringCollectionSize = 0;
+                }
+
+                //adding this message won't exceed our buffer size so lets buffer it and keep going.
+                jsonStringCollection.Add(jsonString);
+                jsonStringCollectionSize += messageSize;
             }
-            finally {
-                _semaphore.Release();
+
+            if (jsonStringCollection.Any())
+            {
+                SelfLog.WriteLine($"Sending batch of log messages to Log Analytics of size {jsonStringCollectionSize}");
+                postTasks.Add(PostDataAsync(jsonStringCollection));
             }
+
+            //now we have to wait for all of our tasks to complete before we return for correctness 
+            if (postTasks.Any())
+            {
+                await Task.WhenAll(postTasks.ToArray()).ConfigureAwait(false);
+            }
+        }
+
+        /// <inheritdoc />
+        public async Task OnEmptyBatchAsync()
+        {
         }
     }
 }

@@ -18,6 +18,7 @@ using Serilog.Core;
 using Serilog.Events;
 using Serilog.Sinks;
 using Serilog.Sinks.AzureAnalytics;
+using Serilog.Sinks.PeriodicBatching;
 
 namespace Serilog
 {
@@ -57,8 +58,8 @@ namespace Serilog
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             bool storeTimestampInUtc = true,
             IFormatProvider formatProvider = null,
-            int logBufferSize = 2000,
-            int batchSize = 100,
+            int? logBufferSize = ConfigurationSettings.DefaultBufferSize,
+            int batchSize = ConfigurationSettings.DefaultBatchSize,
             AzureOfferingType azureOfferingType = AzureOfferingType.Public,
             string proxy = null)
         {
@@ -67,8 +68,7 @@ namespace Serilog
             if (string.IsNullOrEmpty(authenticationId))
                 throw new ArgumentNullException(nameof(authenticationId));
 
-            return loggerConfiguration.Sink(
-                new AzureLogAnalyticsSink(
+            var logAnalyticsSink = new AzureLogAnalyticsSink(
                     workspaceId,
                     authenticationId,
                     logName,
@@ -77,12 +77,22 @@ namespace Serilog
                     logBufferSize,
                     batchSize,
                     azureOfferingType,
-                    proxy: proxy),
+                    proxy: proxy);
+
+            var batchingOptions = new PeriodicBatchingSinkOptions
+            {
+                BatchSizeLimit = batchSize,
+                Period = TimeSpan.FromSeconds(5),
+                EagerlyEmitFirstEvent = true,
+                QueueLimit = logBufferSize
+            };
+
+            return loggerConfiguration.Sink(new PeriodicBatchingSink(logAnalyticsSink, batchingOptions), 
                 restrictedToMinimumLevel);
         }
 
         /// <summary>
-        ///     Adds a sink that writes log events to a Azure Log Analytics.
+        ///     Adds a sink that writes log events to Azure Log Analytics.
         /// </summary>
         /// <param name="loggerConfiguration">The logger configuration.</param>
         /// <param name="workspaceId">Workspace Id from Azure OMS Portal connected sources.</param>
@@ -113,8 +123,8 @@ namespace Serilog
             LogEventLevel restrictedToMinimumLevel = LevelAlias.Minimum,
             bool storeTimestampInUtc = true,
             IFormatProvider formatProvider = null,
-            int logBufferSize = 2000,
-            int batchSize = 100,
+            int? logBufferSize = ConfigurationSettings.DefaultBufferSize,
+            int batchSize = ConfigurationSettings.DefaultBatchSize,
             AzureOfferingType azureOfferingType = AzureOfferingType.Public,
             LoggingLevelSwitch levelSwitch = null,
             bool flattenObject = true,
@@ -125,8 +135,7 @@ namespace Serilog
             if (string.IsNullOrEmpty(authenticationId))
                 throw new ArgumentNullException(nameof(authenticationId));
 
-            return loggerConfiguration.Sink(
-                new AzureLogAnalyticsSink(
+            var logAnalyticsSink = new AzureLogAnalyticsSink(
                     workspaceId,
                     authenticationId,
                     logName,
@@ -136,13 +145,23 @@ namespace Serilog
                     batchSize,
                     azureOfferingType,
                     flattenObject,
-                    proxy),
+                    proxy);
+
+            var batchingOptions = new PeriodicBatchingSinkOptions
+            {
+                BatchSizeLimit = batchSize,
+                Period = TimeSpan.FromSeconds(5),
+                EagerlyEmitFirstEvent = true,
+                QueueLimit = logBufferSize
+            };
+
+            return loggerConfiguration.Sink(new PeriodicBatchingSink(logAnalyticsSink, batchingOptions),
                 restrictedToMinimumLevel,
                 levelSwitch);
         }
 
         /// <summary>
-        ///     Adds a sink that writes log events to a Azure Log Analytics.
+        ///     Adds a sink that writes log events to Azure Log Analytics.
         /// </summary>
         /// <param name="loggerConfiguration">The logger configuration.</param>
         /// <param name="workspaceId">Workspace Id from Azure OMS Portal connected sources.</param>
@@ -168,8 +187,20 @@ namespace Serilog
             if (string.IsNullOrEmpty(authenticationId))
                 throw new ArgumentNullException(nameof(authenticationId));
 
-            return loggerConfiguration.Sink(
-                new AzureLogAnalyticsSink(workspaceId, authenticationId, loggerSettings),
+            var logAnalyticsSink = new AzureLogAnalyticsSink(
+                workspaceId,
+                authenticationId,
+                loggerSettings);
+
+            var batchingOptions = new PeriodicBatchingSinkOptions
+            {
+                BatchSizeLimit = loggerSettings?.BatchSize ?? ConfigurationSettings.DefaultBatchSize,
+                Period = TimeSpan.FromSeconds(5),
+                EagerlyEmitFirstEvent = true,
+                QueueLimit = loggerSettings?.BufferSize
+            };
+
+            return loggerConfiguration.Sink(new PeriodicBatchingSink(logAnalyticsSink, batchingOptions),
                 restrictedToMinimumLevel,
                 levelSwitch);
         }
