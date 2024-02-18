@@ -49,8 +49,6 @@ namespace Serilog.Sinks
 
         internal AzureLogAnalyticsSink(string workSpaceId, string authenticationId, ConfigurationSettings settings) 
         {
-            _semaphore = new SemaphoreSlim(1, 1);
-
             _configurationSettings = settings;
 
             _workSpaceId      = workSpaceId;
@@ -171,46 +169,37 @@ namespace Serilog.Sinks
         /// <remarks>There is no retry action - it is presumed that is handled higher up.</remarks>
         private async Task PostDataAsync(List<string> jsonStringCollection)
         {
-            try 
+            var logEventJsonString = $"[{string.Join(",", jsonStringCollection.ToArray())}]";
+            var contentLength = Encoding.UTF8.GetByteCount(logEventJsonString);
+
+            var dateString = DateTime.UtcNow.ToString("r");
+            var hashedString = BuildSignature(contentLength, dateString, _authenticationId);
+            var signature = $"SharedKey {_workSpaceId}:{hashedString}";
+
+            var stringContent = new StringContent(logEventJsonString);
+            stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
+            stringContent.Headers.Add("Log-Type", _configurationSettings.LogName);
+
+            using (var request = new HttpRequestMessage(HttpMethod.Post, _analyticsUrl))
             {
-                await _semaphore.WaitAsync().ConfigureAwait(false);
+                request.Content = stringContent;
+                request.Headers.Authorization = AuthenticationHeaderValue.Parse(signature);
+                request.Headers.Add("x-ms-date", dateString);
 
-                var logEventJsonString = $"[{string.Join(",", jsonStringCollection.ToArray())}]";
-                var contentLength = Encoding.UTF8.GetByteCount(logEventJsonString);
+                var response = await Client.SendAsync(request).ConfigureAwait(false);
+                var message = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                var dateString = DateTime.UtcNow.ToString("r");
-                var hashedString = BuildSignature(contentLength, dateString, _authenticationId);
-                var signature = $"SharedKey {_workSpaceId}:{hashedString}";
-
-                var stringContent = new StringContent(logEventJsonString);
-                stringContent.Headers.ContentType = MediaTypeHeaderValue.Parse("application/json");
-                stringContent.Headers.Add("Log-Type", _configurationSettings.LogName);
-
-                using (var request = new HttpRequestMessage(HttpMethod.Post, _analyticsUrl))
+                if (response.IsSuccessStatusCode)
                 {
-                    request.Content = stringContent;
-                    request.Headers.Authorization = AuthenticationHeaderValue.Parse(signature);
-                    request.Headers.Add("x-ms-date", dateString);
-
-                    var response = await Client.SendAsync(request).ConfigureAwait(false);
-                    var message = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        SelfLog.WriteLine("Transferring log: [{0}]", response.ReasonPhrase);
-                    }
-                    else
-                    {
-                        SelfLog.WriteLine("Transferring log: [{0}] {1}", response.ReasonPhrase, message);
-                    }
-
-                    //throw an exception on failure.
-                    response.EnsureSuccessStatusCode();
+                    SelfLog.WriteLine("Transferring log: [{0}]", response.ReasonPhrase);
                 }
-            }
-            finally 
-            {
-                _semaphore.Release();
+                else
+                {
+                    SelfLog.WriteLine("Transferring log: [{0}] {1}", response.ReasonPhrase, message);
+                }
+
+                //throw an exception on failure.
+                response.EnsureSuccessStatusCode();
             }
         }
 
@@ -249,8 +238,8 @@ namespace Serilog.Sinks
                     SelfLog.WriteLine($"Sending batch of log messages to Log Analytics of size {jsonStringCollectionSize}");
                     postTasks.Add(PostDataAsync(jsonStringCollection));
 
-                    //and reset our collections since we've sent them.
-                    jsonStringCollection.Clear();
+                    //and reset our collection since we've sent them.
+                    jsonStringCollection = new List<string> ();
                     jsonStringCollectionSize = 0;
                 }
 
