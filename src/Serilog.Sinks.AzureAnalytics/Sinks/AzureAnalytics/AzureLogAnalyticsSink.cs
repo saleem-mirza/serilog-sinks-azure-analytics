@@ -35,7 +35,6 @@ namespace Serilog.Sinks
 {
     internal class AzureLogAnalyticsSink : IBatchedLogEventSink
     {
-        private readonly SemaphoreSlim _semaphore;
         private readonly Uri _analyticsUrl;
         private readonly string _authenticationId;
         private readonly string _workSpaceId;
