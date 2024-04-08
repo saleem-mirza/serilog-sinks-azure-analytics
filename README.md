@@ -34,6 +34,15 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 ```
 
+### Formatting event JSON
+
+To adjust the format of the event JSON populated into Azure Log Analytics, pass an `ITextFormatter` as the first argument:
+```
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.AzureLogAnalytics(new CompactJsonFormatter(), <credentials>, <configSettings>)
+    .CreateLogger();
+```
+
 ## JSON appsettings configuration
 
 
