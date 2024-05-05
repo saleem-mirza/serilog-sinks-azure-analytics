@@ -37,6 +37,7 @@ namespace Serilog.Sinks
     internal class AzureLogAnalyticsSink : BatchProvider, ILogEventSink
     {
         private string token;
+        private DateTimeOffset expire_on = DateTimeOffset.MinValue;
         private readonly string LoggerUriString;
         private readonly SemaphoreSlim _semaphore;
         private readonly JsonSerializerOptions _jsonOptions;
@@ -79,7 +80,7 @@ namespace Serilog.Sinks
                 _configurationSettings.MaxDepth = _configurationSettings.MaxDepth;
             }
 
-            token = GetAuthToken().GetAwaiter().GetResult();
+            (token, expire_on) = GetAuthToken().GetAwaiter().GetResult();
 
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", $"{token}");
             LoggerUriString = $"{_loggerCredential.Endpoint}/dataCollectionRules/{_loggerCredential.ImmutableId}/streams/{_loggerCredential.StreamName}?api-version=2023-01-01";
@@ -119,14 +120,14 @@ namespace Serilog.Sinks
 
             return await PostDataAsync(logs);
         }
-        private async Task<string> GetAuthToken()
+        private async Task<(string, DateTimeOffset)> GetAuthToken()
         {
             if (_loggerCredential.TokenCredential != null)
             {
                 var tokenContext = new TokenRequestContext(new String[] { scope });
                 var cancellationToken = new CancellationToken();
                 var access_token = await _loggerCredential.TokenCredential.GetTokenAsync(tokenContext, cancellationToken);
-                return access_token.Token;
+                return (access_token.Token, access_token.ExpiresOn);
             }
 
             var uri = $"https://login.microsoftonline.com/{_loggerCredential.TenantId}/oauth2/v2.0/token";
@@ -142,18 +143,20 @@ namespace Serilog.Sinks
             if (!response.IsSuccessStatusCode)
             {
                 SelfLog.WriteLine(response.ReasonPhrase);
-                return string.Empty;
+                return (string.Empty, DateTimeOffset.MinValue);
             }
 
             var responseObject = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-
             if (responseObject == null)
             {
                 SelfLog.WriteLine("Invalid response");
-                return string.Empty;
+                return (string.Empty, DateTimeOffset.MinValue);
             }
 
-            return responseObject.RootElement.GetProperty("access_token").GetString();
+            return (
+                responseObject.RootElement.GetProperty("access_token").GetString(),
+                DateTimeOffset.Now.AddSeconds(responseObject.RootElement.GetProperty("expires_in").GetInt32())
+            );
         }
 
         private async Task<bool> PostDataAsync(IEnumerable<IDictionary<string, object>> logs)
@@ -161,6 +164,11 @@ namespace Serilog.Sinks
             try
             {
                 await _semaphore.WaitAsync();
+
+                if (expire_on <= DateTimeOffset.Now)
+                {
+                    (token, expire_on) = await GetAuthToken();
+                }
 
                 var jsonString = JsonSerializer.Serialize(logs, _jsonOptions);
                 var jsonContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
@@ -170,7 +178,6 @@ namespace Serilog.Sinks
                 if (!response.IsSuccessStatusCode)
                 {
                     SelfLog.WriteLine(response.ReasonPhrase);
-                    token = await GetAuthToken();
                     return false;
                 }
 
