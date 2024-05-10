@@ -80,9 +80,6 @@ namespace Serilog.Sinks
                 _configurationSettings.MaxDepth = _configurationSettings.MaxDepth;
             }
 
-            (token, expire_on) = GetAuthToken().GetAwaiter().GetResult();
-
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", $"{token}");
             LoggerUriString = $"{_loggerCredential.Endpoint}/dataCollectionRules/{_loggerCredential.ImmutableId}/streams/{_loggerCredential.StreamName}?api-version=2023-01-01";
         }
 
@@ -139,6 +136,7 @@ namespace Serilog.Sinks
                     new KeyValuePair<string, string>("grant_type", "client_credentials")
                 });
 
+            var httpClient = new HttpClient();
             var response = httpClient.PostAsync(uri, content).GetAwaiter().GetResult();
             if (!response.IsSuccessStatusCode)
             {
@@ -168,13 +166,13 @@ namespace Serilog.Sinks
                 if (expire_on <= DateTimeOffset.Now)
                 {
                     (token, expire_on) = await GetAuthToken();
+                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", $"{token}");
                 }
 
                 var jsonString = JsonSerializer.Serialize(logs, _jsonOptions);
                 var jsonContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
-
+                
                 var response = httpClient.PostAsync(LoggerUriString, jsonContent).GetAwaiter().GetResult();
-
                 if (!response.IsSuccessStatusCode)
                 {
                     SelfLog.WriteLine(response.ReasonPhrase);
