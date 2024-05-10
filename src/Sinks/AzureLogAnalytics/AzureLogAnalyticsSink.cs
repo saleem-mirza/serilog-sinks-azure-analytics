@@ -98,11 +98,6 @@ namespace Serilog.Sinks
             if ((logEventsBatch == null) || (logEventsBatch.Count == 0))
                 return true;
 
-            if (string.IsNullOrEmpty(token))
-            {
-                SelfLog.WriteLine("Unable to authenticate with Azure. Revalidate credentials and try again");
-                return false;
-            }
 
             var jsonStringCollection = new List<string>();
 
@@ -151,10 +146,17 @@ namespace Serilog.Sinks
                 return (string.Empty, DateTimeOffset.MinValue);
             }
 
-            return (
-                responseObject.RootElement.GetProperty("access_token").GetString(),
-                DateTimeOffset.Now.AddSeconds(responseObject.RootElement.GetProperty("expires_in").GetInt32())
-            );
+            try
+            {
+                return (
+                    responseObject.RootElement.GetProperty("access_token").GetString(),
+                    DateTimeOffset.Now.AddSeconds(responseObject.RootElement.GetProperty("expires_in").GetInt32())
+                );
+            }
+            catch (System.Exception)
+            {
+                return (string.Empty, DateTimeOffset.MinValue);
+            }
         }
 
         private async Task<bool> PostDataAsync(IEnumerable<IDictionary<string, object>> logs)
@@ -166,12 +168,18 @@ namespace Serilog.Sinks
                 if (expire_on <= DateTimeOffset.Now)
                 {
                     (token, expire_on) = await GetAuthToken();
+                    if (string.IsNullOrEmpty(token))
+                    {
+                        SelfLog.WriteLine("Invalid or expired authentication token. Validate credentials and try again.");
+                        return false;
+                    }
+
                     httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", $"{token}");
                 }
 
                 var jsonString = JsonSerializer.Serialize(logs, _jsonOptions);
                 var jsonContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
-                
+
                 var response = httpClient.PostAsync(LoggerUriString, jsonContent).GetAwaiter().GetResult();
                 if (!response.IsSuccessStatusCode)
                 {
