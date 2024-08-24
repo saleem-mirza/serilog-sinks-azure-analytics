@@ -15,10 +15,15 @@
         <SignAssembly>True</SignAssembly>
         <AssemblyOriginatorKeyFile>Serilog.snk</AssemblyOriginatorKeyFile>
         <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+		<LangVersion>latest</LangVersion>
         <RootNamespace>Serilog</RootNamespace>
         <PackageIcon>serilog-sink-nuget.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<IsAotCompatible>true</IsAotCompatible>
+		<JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+	</PropertyGroup>
     <PropertyGroup>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
     </PropertyGroup>
