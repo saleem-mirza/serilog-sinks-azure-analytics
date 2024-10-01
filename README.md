@@ -6,7 +6,7 @@ High performance Serilog sink that writes to Azure Log Analytics. It supports au
 Install [Serilog.Sinks.AzureAnalytics](https://www.nuget.org/packages/serilog.sinks.azureanalytics) from NuGet
 
 ```PowerShell
-Install-Package Serilog.Sinks.AzureAnalytics
+Install-Package Serilog.Sinks.AzureLogAnalytics
 ```
 
 Configure logger by calling `WriteTo.AzureLogAnalytics(<workspaceId>, <authenticationId>)`
