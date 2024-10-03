@@ -18,15 +18,16 @@ Configure logger by calling `WriteTo.AzureLogAnalytics(<credentials>, <configSet
 
 > `credentials`: A structure with required information to access Azure Log Ingestion API. to  from Azure OMS Portal connected sources. This parameter accepts:
 
-```
-endpoint:     Logs Ingestion URL for data collection endpoint.
-immutableId:  ImmutableId for Data Collection Rules (DCR)
-streamName:   Output stream name of target (Log Analytics API, can be accessed from DCR)
-tenantId:     Directory (tenant) Id of registered application (Microsoft Entra ID)
-clientId:     Application (client) Id of Microsoft Entra application
-clientSecret: Client secret for registered Engra Application  
-```
->
+
+| Parameter name | Meaning                                                                     |
+|----------------|-----------------------------------------------------------------------------|
+| `endpoint`     | Logs Ingestion URL for data collection endpoint.                            |
+| `immutableId`  | ImmutableId for Data Collection Rules (DCR).                                |
+| `streamName`   | Output stream name of target (Log Analytics API, can be accessed from DCR). |
+| `tenantId`     | Directory (tenant) Id of registered application (Microsoft Entra ID).       |
+| `clientId`     | Application (client) Id of Microsoft Entra application.                     |
+| `clientSecret` | Client secret for registered Entra Application.                             |
+
 
 ```C#
 Log.Logger = new LoggerConfiguration()
