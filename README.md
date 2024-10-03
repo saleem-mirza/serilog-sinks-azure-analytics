@@ -24,7 +24,7 @@ immutableId:  ImmutableId for Data Collection Rules (DCR)
 streamName:   Output stream name of target (Log Analytics API, can be accessed from DCR)
 tenantId:     Directory (tenant) Id of registered application (Microsoft Entra ID)
 clientId:     Application (client) Id of Microsoft Entra application
-clientSecret: Client secret for registered Engra Application  
+clientSecret: Client secret for registered Entra Application  
 ```
 >
 
