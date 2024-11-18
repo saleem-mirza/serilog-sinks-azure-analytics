@@ -1,23 +1,17 @@
 ﻿// Copyright 2025 Zethian Inc.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-using Azure.Core;
-using Serilog.Core;
-using Serilog.Debugging;
-using Serilog.Events;
-using Serilog.Sinks.AzureLogAnalytics;
-using Serilog.Sinks.Batch;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -26,11 +20,17 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-using NamingStrategy = Serilog.Sinks.AzureLogAnalytics.NamingStrategy;
-using System.Text.Json.Serialization;
+using Azure.Core;
+using Serilog.Core;
+using Serilog.Debugging;
+using Serilog.Events;
 using Serilog.Formatting;
+using Serilog.Sinks.AzureLogAnalytics;
+using Serilog.Sinks.Batch;
+using NamingStrategy = Serilog.Sinks.AzureLogAnalytics.NamingStrategy;
 
 namespace Serilog.Sinks
 {
@@ -40,12 +40,12 @@ namespace Serilog.Sinks
         private DateTimeOffset expire_on = DateTimeOffset.MinValue;
         private readonly string LoggerUriString;
         private readonly SemaphoreSlim _semaphore;
-        private readonly JsonSerializerOptions _jsonOptions;
+        private readonly LogsJsonSerializerContext _logsJsonSerializerContext;
         private readonly ConfigurationSettings _configurationSettings;
         private readonly LoggerCredential _loggerCredential;
         private static readonly HttpClient httpClient = new HttpClient();
 
-        const string scope = "https://monitor.azure.com//.default";
+        private const string scope = "https://monitor.azure.com//.default";
 
         internal AzureLogAnalyticsSink(LoggerCredential loggerCredential, ConfigurationSettings settings, ITextFormatter formatter) :
             base(settings.BatchSize, settings.BufferSize)
@@ -56,25 +56,29 @@ namespace Serilog.Sinks
 
             _configurationSettings = settings;
 
+            JsonSerializerOptions jsonOptions;
             switch (settings.PropertyNamingStrategy)
             {
                 case NamingStrategy.Default:
-                    _jsonOptions = new JsonSerializerOptions();
+                    jsonOptions = new JsonSerializerOptions();
 
                     break;
+
                 case NamingStrategy.CamelCase:
-                    _jsonOptions = new JsonSerializerOptions()
+                    jsonOptions = new JsonSerializerOptions()
                     {
                         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     };
 
                     break;
+
                 default: throw new ArgumentOutOfRangeException();
             }
 
-            _jsonOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-            _jsonOptions.WriteIndented = false;
-            _jsonOptions.Converters.Add(new LoggerJsonConverter(formatter));
+            jsonOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+            jsonOptions.WriteIndented = false;
+            jsonOptions.Converters.Add(new LoggerJsonConverter(formatter));
+            _logsJsonSerializerContext = new LogsJsonSerializerContext(jsonOptions);
             if (_configurationSettings.MaxDepth > 0)
             {
                 _configurationSettings.MaxDepth = _configurationSettings.MaxDepth;
@@ -90,14 +94,12 @@ namespace Serilog.Sinks
             PushEvent(logEvent);
         }
 
-        #endregion
-
+        #endregion ILogEvent implementation
 
         protected override async Task<bool> WriteLogEventAsync(ICollection<LogEvent> logEventsBatch)
         {
             if ((logEventsBatch == null) || (logEventsBatch.Count == 0))
                 return true;
-
 
             var jsonStringCollection = new List<string>();
 
@@ -112,6 +114,7 @@ namespace Serilog.Sinks
 
             return await PostDataAsync(logs);
         }
+
         private async Task<(string, DateTimeOffset)> GetAuthToken()
         {
             if (_loggerCredential.TokenCredential != null)
@@ -177,7 +180,7 @@ namespace Serilog.Sinks
                     httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", $"{token}");
                 }
 
-                var jsonString = JsonSerializer.Serialize(logs, _jsonOptions);
+                var jsonString = JsonSerializer.Serialize(logs, typeof(IEnumerable<IDictionary<string, object>>), _logsJsonSerializerContext);
                 var jsonContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
 
                 var response = httpClient.PostAsync(LoggerUriString, jsonContent).GetAwaiter().GetResult();
