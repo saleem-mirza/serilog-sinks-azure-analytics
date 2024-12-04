@@ -1,6 +1,6 @@
 ---
 name: Issue template
-about: Issue template for Serilog.Sinks.AzureAnalytics
+about: Issue template for Serilog.Sinks.AzureLogAnalytics
 title: ''
 labels: ''
 assignees: ''
