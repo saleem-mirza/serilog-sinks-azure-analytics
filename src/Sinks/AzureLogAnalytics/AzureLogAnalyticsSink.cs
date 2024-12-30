@@ -56,21 +56,17 @@ namespace Serilog.Sinks
 
             _configurationSettings = settings;
 
-            switch (settings.PropertyNamingStrategy)
+            _jsonOptions = settings.PropertyNamingStrategy switch 
             {
-                case NamingStrategy.Default:
-                    _jsonOptions = new JsonSerializerOptions();
-
-                    break;
-                case NamingStrategy.CamelCase:
+                NamingStrategy.Default =>
+                    _jsonOptions = new JsonSerializerOptions(),
+                NamingStrategy.CamelCase =>
                     _jsonOptions = new JsonSerializerOptions()
                     {
                         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    };
-
-                    break;
-                default: throw new ArgumentOutOfRangeException();
-            }
+                    },
+                 _ => throw new ArgumentOutOfRangeException()
+            };
 
             _jsonOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
             _jsonOptions.WriteIndented = false;
@@ -131,7 +127,6 @@ namespace Serilog.Sinks
                     new KeyValuePair<string, string>("grant_type", "client_credentials")
                 });
 
-            var httpClient = new HttpClient();
             var response = httpClient.PostAsync(uri, content).GetAwaiter().GetResult();
             if (!response.IsSuccessStatusCode)
             {

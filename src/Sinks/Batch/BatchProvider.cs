@@ -144,7 +144,7 @@ namespace Serilog.Sinks.Batch
 
             if (_eventsCollection.Count >= _batchSize)
             {
-                var eventList = new List<LogEvent>();
+                var eventList = new List<LogEvent>(_batchSize);
                 for (var i = 0; i < _batchSize; i++)
                 {
                     eventList.Add(_eventsCollection.Take());
@@ -198,14 +198,14 @@ namespace Serilog.Sinks.Batch
                     foreach (var logEvent in _batchEventsCollection)
                     {
                         SelfLog.WriteLine($"Sending batch of {logEvent.Count} logs");
-                        WriteLogEventAsync(logEvent).GetAwaiter().GetResult();
+                        Task.Run(()=> WriteLogEventAsync(logEvent).GetAwaiter().GetResult());
                     }
                 }
 
                 if (!_eventsCollection.IsCompleted)
                 {
                     SelfLog.WriteLine($"Sending batch of {_eventsCollection.Count} logs");
-                    WriteLogEventAsync(_eventsCollection.ToList()).GetAwaiter().GetResult();
+                    Task.Run(()=> WriteLogEventAsync(_eventsCollection.ToList()).GetAwaiter().GetResult());
                 }
 
             }
