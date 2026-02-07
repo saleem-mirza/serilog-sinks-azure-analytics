@@ -198,14 +198,14 @@ namespace Serilog.Sinks.Batch
                     foreach (var logEvent in _batchEventsCollection)
                     {
                         SelfLog.WriteLine($"Sending batch of {logEvent.Count} logs");
-                        Task.Run(()=> WriteLogEventAsync(logEvent).GetAwaiter().GetResult());
+                        WriteLogEventAsync(logEvent).GetAwaiter().GetResult();
                     }
                 }
 
                 if (!_eventsCollection.IsCompleted)
                 {
                     SelfLog.WriteLine($"Sending batch of {_eventsCollection.Count} logs");
-                    Task.Run(()=> WriteLogEventAsync(_eventsCollection.ToList()).GetAwaiter().GetResult());
+                    WriteLogEventAsync(_eventsCollection.ToList()).GetAwaiter().GetResult();
                 }
 
             }
