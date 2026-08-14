@@ -13,7 +13,7 @@ Requires Serilog 4.4.0 or later. Targets `netstandard2.0` and `net8.0`.
 ### Fixed
 
 - `TimeGenerated` now comes from `LogEvent.Timestamp` rather than `DateTime.UtcNow` at serialize time. A retried batch previously landed stamped up to `RetryTimeLimit` late, and every event in a batch shared a single timestamp.
-- Credential construction is deferred to the first batch. `ClientSecretCredential` validates tenant, client, and secret in its own constructor, which ran inside `CreateLogger()`, so a bad secret aborted application startup. A bad secret now fails a batch, which Serilog retries and reports through `SelfLog`.
+- Credential construction is deferred to the first batch. `ClientSecretCredential` validates tenant, client, and secret in its own constructor, which ran while the logger was being configured, so a bad secret aborted application startup. A bad secret now fails a batch, which Serilog retries and reports through `SelfLog`.
 - Each request sets its own `Authorization` header, so the shared static `HttpClient` no longer carries one sink's bearer token into another sink's requests.
 
 ### Changed

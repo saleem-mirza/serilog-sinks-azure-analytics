@@ -148,7 +148,7 @@ var credentials = new LoggerCredential
 };
 ```
 
-The sink builds a `ClientSecretCredential` from these on the first batch rather than at `CreateLogger()`, so an invalid secret fails a batch that Serilog retries and reports through `SelfLog`, instead of aborting application startup.
+The sink builds a `ClientSecretCredential` from these on the first batch rather than while the logger is being configured, so an invalid secret fails a batch that Serilog retries and reports through `SelfLog`, instead of aborting application startup.
 
 ### Credential parameters
 
@@ -178,7 +178,7 @@ Values outside the accepted range fall back to the default silently rather than 
 
 `propertyNamingStrategy` never renames the three envelope keys, because those keys must match your DCR column names. The naming inside `Event` comes from the `ITextFormatter`.
 
-Batches flush when `batchSize` is reached or after 10 seconds, whichever comes first. Failed batches are retried for up to 2 minutes.
+Batches flush when `batchSize` is reached or after 10 seconds, whichever comes first. The first batch after startup skips the 10-second wait, so events show up immediately during debugging; this is always on and has no setting. Failed batches are retried for up to 2 minutes, then dropped, and the loss is reported through `SelfLog`.
 
 ## JSON appsettings configuration
 
