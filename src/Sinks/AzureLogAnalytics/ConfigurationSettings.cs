@@ -13,7 +13,8 @@ namespace Serilog.Sinks.AzureLogAnalytics
         public ConfigurationSettings()
         {
             PropertyNamingStrategy = NamingStrategy.Default;
-            LevelSwitch = new LoggingLevelSwitch(LogEventLevel.Verbose);
+            // LevelSwitch stays null by default. Serilog ignores restrictedToMinimumLevel
+            // whenever a switch is supplied, so constructing one here made MinLogLevel inert.
             MinLogLevel = LogEventLevel.Verbose;
             maxDepth = 5;
             bufferSize = 5000;

@@ -34,7 +34,7 @@ namespace Serilog.Sinks
     {
         private readonly string LoggerUriString;
         private readonly JsonSerializerOptions _jsonOptions;
-        private readonly TokenCredential _tokenCredential;
+        private readonly Lazy<TokenCredential> _tokenCredential;
         private static readonly HttpClient httpClient = new HttpClient();
 
         // The doubled slash is required by Azure Monitor. It is not a typo.
@@ -42,10 +42,13 @@ namespace Serilog.Sinks
 
         internal AzureLogAnalyticsSink(LoggerCredential loggerCredential, ConfigurationSettings settings, ITextFormatter formatter)
         {
-            _tokenCredential = loggerCredential.TokenCredential ?? new ClientSecretCredential(
+            // Deferred: ClientSecretCredential validates its arguments in the constructor, and
+            // this runs inside CreateLogger(). Building it on the first batch keeps a bad
+            // tenant/client/secret inside Serilog's retry path instead of aborting startup.
+            _tokenCredential = new Lazy<TokenCredential>(() => loggerCredential.TokenCredential ?? new ClientSecretCredential(
                 loggerCredential.TenantId,
                 loggerCredential.ClientId,
-                loggerCredential.ClientSecret);
+                loggerCredential.ClientSecret));
 
             _jsonOptions = new JsonSerializerOptions
             {
@@ -69,7 +72,7 @@ namespace Serilog.Sinks
 
             var logs = batch.Select(s => new Dictionary<string, object>
             {
-                ["TimeGenerated"] = DateTime.UtcNow,
+                ["TimeGenerated"] = s.Timestamp.UtcDateTime,
                 ["Event"] = s,
                 ["Message"] = s.RenderMessage()
             });
@@ -82,7 +85,7 @@ namespace Serilog.Sinks
         // the token themselves, so there is no token cache here.
         private async Task PostDataAsync(IEnumerable<IDictionary<string, object>> logs)
         {
-            var accessToken = await _tokenCredential.GetTokenAsync(new TokenRequestContext(scopes), default);
+            var accessToken = await _tokenCredential.Value.GetTokenAsync(new TokenRequestContext(scopes), default);
 
             var jsonString = JsonSerializer.Serialize(logs, _jsonOptions);
 
