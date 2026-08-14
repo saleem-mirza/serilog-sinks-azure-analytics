@@ -13,8 +13,8 @@
 // limitations under the License.
 
 using Azure.Core;
+using Azure.Identity;
 using Serilog.Core;
-using Serilog.Debugging;
 using Serilog.Events;
 using Serilog.Sinks.AzureLogAnalytics;
 using System;
@@ -32,18 +32,20 @@ namespace Serilog.Sinks
 {
     internal class AzureLogAnalyticsSink : IBatchedLogEventSink
     {
-        private string token;
-        private DateTimeOffset expire_on = DateTimeOffset.MinValue;
         private readonly string LoggerUriString;
         private readonly JsonSerializerOptions _jsonOptions;
-        private readonly LoggerCredential _loggerCredential;
+        private readonly TokenCredential _tokenCredential;
         private static readonly HttpClient httpClient = new HttpClient();
 
-        const string scope = "https://monitor.azure.com//.default";
+        // The doubled slash is required by Azure Monitor. It is not a typo.
+        private static readonly string[] scopes = { "https://monitor.azure.com//.default" };
 
         internal AzureLogAnalyticsSink(LoggerCredential loggerCredential, ConfigurationSettings settings, ITextFormatter formatter)
         {
-            _loggerCredential = loggerCredential;
+            _tokenCredential = loggerCredential.TokenCredential ?? new ClientSecretCredential(
+                loggerCredential.TenantId,
+                loggerCredential.ClientId,
+                loggerCredential.ClientSecret);
 
             _jsonOptions = new JsonSerializerOptions
             {
@@ -55,7 +57,7 @@ namespace Serilog.Sinks
             };
             _jsonOptions.Converters.Add(new LoggerJsonConverter(formatter));
 
-            LoggerUriString = $"{_loggerCredential.Endpoint}/dataCollectionRules/{_loggerCredential.ImmutableId}/streams/{_loggerCredential.StreamName}?api-version=2023-01-01";
+            LoggerUriString = $"{loggerCredential.Endpoint}/dataCollectionRules/{loggerCredential.ImmutableId}/streams/{loggerCredential.StreamName}?api-version=2023-01-01";
         }
 
         public Task OnEmptyBatchAsync() => Task.CompletedTask;
@@ -75,71 +77,22 @@ namespace Serilog.Sinks
             return PostDataAsync(logs);
         }
 
-        private async Task<(string, DateTimeOffset)> GetAuthToken()
-        {
-            if (_loggerCredential.TokenCredential != null)
-            {
-                var tokenContext = new TokenRequestContext(new[] { scope });
-                var access_token = await _loggerCredential.TokenCredential.GetTokenAsync(tokenContext, default);
-                return (access_token.Token, access_token.ExpiresOn);
-            }
-
-            var uri = $"https://login.microsoftonline.com/{_loggerCredential.TenantId}/oauth2/v2.0/token";
-
-            var content = new FormUrlEncodedContent(new[]{
-                    new KeyValuePair<string, string>("client_id",_loggerCredential.ClientId),
-                    new KeyValuePair<string, string>("scope", scope),
-                    new KeyValuePair<string, string>("client_secret", _loggerCredential.ClientSecret),
-                    new KeyValuePair<string, string>("grant_type", "client_credentials")
-                });
-
-            var response = await httpClient.PostAsync(uri, content);
-            if (!response.IsSuccessStatusCode)
-            {
-                SelfLog.WriteLine(response.ReasonPhrase);
-                return (string.Empty, DateTimeOffset.MinValue);
-            }
-
-            var responseObject = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-            if (responseObject == null)
-            {
-                SelfLog.WriteLine("Invalid response");
-                return (string.Empty, DateTimeOffset.MinValue);
-            }
-
-            try
-            {
-                return (
-                    responseObject.RootElement.GetProperty("access_token").GetString(),
-                    DateTimeOffset.Now.AddSeconds(responseObject.RootElement.GetProperty("expires_in").GetInt32())
-                );
-            }
-            catch (System.Exception)
-            {
-                return (string.Empty, DateTimeOffset.MinValue);
-            }
-        }
-
         // Exceptions propagate: Serilog's batching sink owns retry, backoff, and SelfLog
-        // diagnostics for failed batches.
+        // diagnostics for failed batches. TokenCredential implementations cache and refresh
+        // the token themselves, so there is no token cache here.
         private async Task PostDataAsync(IEnumerable<IDictionary<string, object>> logs)
         {
-            if (expire_on <= DateTimeOffset.Now)
-            {
-                (token, expire_on) = await GetAuthToken();
-                if (string.IsNullOrEmpty(token))
-                {
-                    throw new InvalidOperationException(
-                        "Invalid or expired authentication token. Validate credentials and try again.");
-                }
-
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
+            var accessToken = await _tokenCredential.GetTokenAsync(new TokenRequestContext(scopes), default);
 
             var jsonString = JsonSerializer.Serialize(logs, _jsonOptions);
-            var jsonContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
 
-            var response = await httpClient.PostAsync(LoggerUriString, jsonContent);
+            var request = new HttpRequestMessage(HttpMethod.Post, LoggerUriString)
+            {
+                Content = new StringContent(jsonString, Encoding.UTF8, "application/json")
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.Token);
+
+            var response = await httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
         }
     }
