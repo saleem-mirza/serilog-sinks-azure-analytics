@@ -20,7 +20,6 @@ using Serilog.Sinks.AzureLogAnalytics;
 using Serilog.Sinks.Batch;
 using System;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -28,7 +27,6 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using NamingStrategy = Serilog.Sinks.AzureLogAnalytics.NamingStrategy;
 using System.Text.Json.Serialization;
 using Serilog.Formatting;
 
@@ -41,7 +39,6 @@ namespace Serilog.Sinks
         private readonly string LoggerUriString;
         private readonly SemaphoreSlim _semaphore;
         private readonly JsonSerializerOptions _jsonOptions;
-        private readonly ConfigurationSettings _configurationSettings;
         private readonly LoggerCredential _loggerCredential;
         private static readonly HttpClient httpClient = new HttpClient();
 
@@ -54,67 +51,45 @@ namespace Serilog.Sinks
 
             _loggerCredential = loggerCredential;
 
-            _configurationSettings = settings;
-
-            _jsonOptions = settings.PropertyNamingStrategy switch 
+            _jsonOptions = new JsonSerializerOptions
             {
-                NamingStrategy.Default =>
-                    _jsonOptions = new JsonSerializerOptions(),
-                NamingStrategy.CamelCase =>
-                    _jsonOptions = new JsonSerializerOptions()
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                    },
-                 _ => throw new ArgumentOutOfRangeException()
+                PropertyNamingPolicy = settings.PropertyNamingStrategy == NamingStrategy.CamelCase
+                    ? JsonNamingPolicy.CamelCase
+                    : null,
+                ReferenceHandler = ReferenceHandler.IgnoreCycles,
+                WriteIndented = false,
             };
-
-            _jsonOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-            _jsonOptions.WriteIndented = false;
             _jsonOptions.Converters.Add(new LoggerJsonConverter(formatter));
-            if (_configurationSettings.MaxDepth > 0)
-            {
-                _configurationSettings.MaxDepth = _configurationSettings.MaxDepth;
-            }
 
             LoggerUriString = $"{_loggerCredential.Endpoint}/dataCollectionRules/{_loggerCredential.ImmutableId}/streams/{_loggerCredential.StreamName}?api-version=2023-01-01";
         }
-
-        #region ILogEvent implementation
 
         public void Emit(LogEvent logEvent)
         {
             PushEvent(logEvent);
         }
 
-        #endregion
-
-
         protected override async Task<bool> WriteLogEventAsync(ICollection<LogEvent> logEventsBatch)
         {
             if ((logEventsBatch == null) || (logEventsBatch.Count == 0))
                 return true;
 
-
-            var jsonStringCollection = new List<string>();
-
-            var logs = logEventsBatch.Select(s =>
-                {
-                    var obj = new ExpandoObject() as IDictionary<string, object>;
-                    obj.Add("TimeGenerated", DateTime.UtcNow);
-                    obj.Add("Event", s);
-                    obj.Add("Message", s.RenderMessage());
-                    return obj;
-                });
+            var logs = logEventsBatch.Select(s => new Dictionary<string, object>
+            {
+                ["TimeGenerated"] = DateTime.UtcNow,
+                ["Event"] = s,
+                ["Message"] = s.RenderMessage()
+            });
 
             return await PostDataAsync(logs);
         }
+
         private async Task<(string, DateTimeOffset)> GetAuthToken()
         {
             if (_loggerCredential.TokenCredential != null)
             {
-                var tokenContext = new TokenRequestContext(new String[] { scope });
-                var cancellationToken = new CancellationToken();
-                var access_token = await _loggerCredential.TokenCredential.GetTokenAsync(tokenContext, cancellationToken);
+                var tokenContext = new TokenRequestContext(new[] { scope });
+                var access_token = await _loggerCredential.TokenCredential.GetTokenAsync(tokenContext, default);
                 return (access_token.Token, access_token.ExpiresOn);
             }
 
@@ -179,7 +154,6 @@ namespace Serilog.Sinks
                 if (!response.IsSuccessStatusCode)
                 {
                     SelfLog.WriteLine(response.ReasonPhrase);
-                    return false;
                 }
 
                 return response.IsSuccessStatusCode;

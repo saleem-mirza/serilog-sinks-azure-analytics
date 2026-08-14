@@ -7,7 +7,6 @@ namespace Serilog.Sinks.AzureLogAnalytics
     public class ConfigurationSettings
     {
         private int maxDepth;
-        private LogEventLevel minLogLevel;
         private int bufferSize;
         private int batchSize;
 
@@ -24,11 +23,7 @@ namespace Serilog.Sinks.AzureLogAnalytics
         public IFormatProvider FormatProvider { get; set; }
         public NamingStrategy PropertyNamingStrategy { get; set; }
         public LoggingLevelSwitch LevelSwitch { get; set; }
-        public LogEventLevel MinLogLevel
-        {
-            get => minLogLevel;
-            set => minLogLevel = value;
-        }
+        public LogEventLevel MinLogLevel { get; set; }
         public int MaxDepth
         {
             get => maxDepth;

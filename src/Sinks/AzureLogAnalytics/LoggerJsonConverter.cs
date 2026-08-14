@@ -13,13 +13,7 @@ namespace Serilog.Sinks.AzureLogAnalytics
         private readonly ITextFormatter _formatter;
         public LoggerJsonConverter(ITextFormatter formatter)
         {
-            if (formatter != null)
-            {
-                _formatter = formatter;
-            } else
-            {
-                _formatter = new JsonFormatter();
-            }
+            _formatter = formatter ?? new JsonFormatter();
         }
         public override LogEvent Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
