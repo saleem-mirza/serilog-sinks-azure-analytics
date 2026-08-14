@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Serilog sink that ships log events to Azure Monitor through the Logs Ingestion API (Data Collection Rules), published as the `Serilog.Sinks.AzureLogAnalytics` NuGet package. Single project, no test project.
+Serilog sink that ships log events to Azure Monitor through the Logs Ingestion API (Data Collection Rules), published as the `Serilog.Sinks.AzureLogAnalytics` NuGet package. The library lives in `src/`, its tests in `test/Serilog.Sinks.AzureLogAnalytics.Tests/`. There is no solution file, so build and test commands take a directory or a project path.
 
 ## Commands
 
@@ -17,13 +17,24 @@ dotnet pack                       # produces the NuGet package
 dotnet build -f net8.0            # single target framework
 ```
 
-There is no test project, no solution file, and no lint or format step. Build and pack are the only verification checked into the repo, so run them from `src/` after any change.
+Tests run from `test/Serilog.Sinks.AzureLogAnalytics.Tests/`:
 
-To verify delivery behavior without an Azure subscription, point the sink at a local `HttpListener`: set `LoggerCredential.Endpoint` to `http://localhost:<port>`, supply a stub `TokenCredential` returning any non-empty token, and assert on the received body. That covers batching, the request URL, the bearer header, the envelope shape, and the retry path.
+```bash
+dotnet test
+dotnet test --filter RejectedBatchIsRetried    # one test
+```
+
+There is no lint or format step.
+
+The tests drive the sink through the public `WriteTo.AzureLogAnalytics(...)` API against an `HttpListener` on a loopback port (`Collector.cs`), with a stub `TokenCredential`, so nothing touches Azure or the network. They assert on what reaches the wire: batching, request URL, bearer header, envelope shape, and the retry path. Adding a case means adding a `[Fact]`, not a mock.
+
+The suite takes about 30 seconds, and that is inherent rather than slack. Serilog's `BufferingTimeLimit` (10 seconds here) governs when a partial batch flushes, and its retry scheduler paces reattempts at roughly 10 seconds. Both are wall-clock waits with no seam to shorten them. Keep new tests inside the existing waits where possible.
+
+The test project targets `net8.0` to match the library and CI, with `RollForward` set to `Major` so the test host runs on a newer runtime when 8.0 is not installed.
 
 Targets `netstandard2.0;net8.0` with `LangVersion` 8.0. Language features newer than C# 8 will not compile. The assembly is strong-named with `src/Serilog.snk`, so a build needs that key file present.
 
-CI (`.github/workflows/dotnet.yml`) runs restore, build, and pack on push and PR against `vnext`. The default working branch is `dev`, so CI does not fire for it.
+CI (`.github/workflows/dotnet.yml`) runs restore, build, test, and pack on push and PR against `vnext`. The default working branch is `dev`, so CI does not fire for it: run `dotnet test` yourself before pushing to `dev`.
 
 ## Architecture
 
@@ -45,7 +56,7 @@ Two settings are inert. `MaxDepth` is clamped and never read. `FormatProvider` i
 
 - `EmitBatchAsync` must let exceptions escape. Serilog's batching infrastructure treats a thrown exception as batch failure and owns retry, backoff, and `SelfLog` diagnostics. Swallowing the failure and returning normally tells Serilog the batch was delivered, and the events are gone. `PostDataAsync` throws on both a missing token and a non-success status for that reason.
 - `BatchingOptions.EagerlyEmitFirstEvent` defaults to true, so the first event after startup ships on its own rather than waiting for the buffer window. Set it to false to trade startup liveness for fewer requests.
-- The OAuth scope in the `scopes` field of `AzureLogAnalyticsSink.cs` is `https://monitor.azure.com//.default`. The doubled slash is required by Azure Monitor. Removing it looks like a typo fix and breaks authentication at runtime, where no test catches it.
+- The OAuth scope in the `scopes` field of `AzureLogAnalyticsSink.cs` is `https://monitor.azure.com//.default`. The doubled slash is required by Azure Monitor. Removing it looks like a typo fix and breaks authentication against the real service. `StubCredential` asserts the scope, so the tests catch it.
 - A custom `TokenCredential` that does not cache gets one `GetTokenAsync` call per batch. Every credential in `Azure.Identity` caches, so this only bites hand-written implementations.
 - `LoggerConfigurationExtensions` passes both `restrictedToMinimumLevel: MinLogLevel` and `levelSwitch: LevelSwitch` to `Sink(...)`, and `ConfigurationSettings` always constructs a `LevelSwitch` at `Verbose`. Serilog ignores the minimum level whenever a switch is supplied, so raising `MinLogLevel` alone changes nothing. Set `LevelSwitch`.
 - The batching API (`IBatchedLogEventSink`, `BatchingOptions`, the `Sink(IBatchedLogEventSink, ...)` overload) requires Serilog 4.4.0 or later. Downgrading the Serilog reference breaks the build.

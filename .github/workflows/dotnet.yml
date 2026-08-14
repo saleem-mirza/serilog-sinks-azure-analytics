@@ -26,6 +26,9 @@ jobs:
     - name: Build
       working-directory: src
       run: dotnet build --no-restore
-    - name: Package 
+    - name: Test
+      working-directory: test/Serilog.Sinks.AzureLogAnalytics.Tests
+      run: dotnet test
+    - name: Package
       working-directory: src
       run: dotnet pack
