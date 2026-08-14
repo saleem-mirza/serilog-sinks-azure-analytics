@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
 using Serilog.Configuration;
 using Serilog.Formatting;
 using Serilog.Sinks;
@@ -43,6 +44,13 @@ namespace Serilog
             }
             return loggerConfiguration.Sink(
                 new AzureLogAnalyticsSink(credentials, configSettings, formatter),
+                new BatchingOptions
+                {
+                    BatchSizeLimit     = configSettings.BatchSize,
+                    QueueLimit         = configSettings.BufferSize,
+                    BufferingTimeLimit = TimeSpan.FromSeconds(10),
+                    RetryTimeLimit     = TimeSpan.FromMinutes(2)
+                },
                 restrictedToMinimumLevel: configSettings.MinLogLevel,
                 levelSwitch: configSettings.LevelSwitch
             );

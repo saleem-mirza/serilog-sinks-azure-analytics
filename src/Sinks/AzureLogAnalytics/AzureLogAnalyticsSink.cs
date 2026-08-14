@@ -17,7 +17,6 @@ using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;
 using Serilog.Sinks.AzureLogAnalytics;
-using Serilog.Sinks.Batch;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,30 +24,25 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json.Serialization;
 using Serilog.Formatting;
 
 namespace Serilog.Sinks
 {
-    internal class AzureLogAnalyticsSink : BatchProvider, ILogEventSink
+    internal class AzureLogAnalyticsSink : IBatchedLogEventSink
     {
         private string token;
         private DateTimeOffset expire_on = DateTimeOffset.MinValue;
         private readonly string LoggerUriString;
-        private readonly SemaphoreSlim _semaphore;
         private readonly JsonSerializerOptions _jsonOptions;
         private readonly LoggerCredential _loggerCredential;
         private static readonly HttpClient httpClient = new HttpClient();
 
         const string scope = "https://monitor.azure.com//.default";
 
-        internal AzureLogAnalyticsSink(LoggerCredential loggerCredential, ConfigurationSettings settings, ITextFormatter formatter) :
-            base(settings.BatchSize, settings.BufferSize)
+        internal AzureLogAnalyticsSink(LoggerCredential loggerCredential, ConfigurationSettings settings, ITextFormatter formatter)
         {
-            _semaphore = new SemaphoreSlim(1, 1);
-
             _loggerCredential = loggerCredential;
 
             _jsonOptions = new JsonSerializerOptions
@@ -64,24 +58,21 @@ namespace Serilog.Sinks
             LoggerUriString = $"{_loggerCredential.Endpoint}/dataCollectionRules/{_loggerCredential.ImmutableId}/streams/{_loggerCredential.StreamName}?api-version=2023-01-01";
         }
 
-        public void Emit(LogEvent logEvent)
-        {
-            PushEvent(logEvent);
-        }
+        public Task OnEmptyBatchAsync() => Task.CompletedTask;
 
-        protected override async Task<bool> WriteLogEventAsync(ICollection<LogEvent> logEventsBatch)
+        public Task EmitBatchAsync(IReadOnlyCollection<LogEvent> batch)
         {
-            if ((logEventsBatch == null) || (logEventsBatch.Count == 0))
-                return true;
+            if ((batch == null) || (batch.Count == 0))
+                return Task.CompletedTask;
 
-            var logs = logEventsBatch.Select(s => new Dictionary<string, object>
+            var logs = batch.Select(s => new Dictionary<string, object>
             {
                 ["TimeGenerated"] = DateTime.UtcNow,
                 ["Event"] = s,
                 ["Message"] = s.RenderMessage()
             });
 
-            return await PostDataAsync(logs);
+            return PostDataAsync(logs);
         }
 
         private async Task<(string, DateTimeOffset)> GetAuthToken()
@@ -102,7 +93,7 @@ namespace Serilog.Sinks
                     new KeyValuePair<string, string>("grant_type", "client_credentials")
                 });
 
-            var response = httpClient.PostAsync(uri, content).GetAwaiter().GetResult();
+            var response = await httpClient.PostAsync(uri, content);
             if (!response.IsSuccessStatusCode)
             {
                 SelfLog.WriteLine(response.ReasonPhrase);
@@ -129,44 +120,27 @@ namespace Serilog.Sinks
             }
         }
 
-        private async Task<bool> PostDataAsync(IEnumerable<IDictionary<string, object>> logs)
+        // Exceptions propagate: Serilog's batching sink owns retry, backoff, and SelfLog
+        // diagnostics for failed batches.
+        private async Task PostDataAsync(IEnumerable<IDictionary<string, object>> logs)
         {
-            try
+            if (expire_on <= DateTimeOffset.Now)
             {
-                await _semaphore.WaitAsync();
-
-                if (expire_on <= DateTimeOffset.Now)
+                (token, expire_on) = await GetAuthToken();
+                if (string.IsNullOrEmpty(token))
                 {
-                    (token, expire_on) = await GetAuthToken();
-                    if (string.IsNullOrEmpty(token))
-                    {
-                        SelfLog.WriteLine("Invalid or expired authentication token. Validate credentials and try again.");
-                        return false;
-                    }
-
-                    httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", $"{token}");
+                    throw new InvalidOperationException(
+                        "Invalid or expired authentication token. Validate credentials and try again.");
                 }
 
-                var jsonString = JsonSerializer.Serialize(logs, _jsonOptions);
-                var jsonContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
 
-                var response = httpClient.PostAsync(LoggerUriString, jsonContent).GetAwaiter().GetResult();
-                if (!response.IsSuccessStatusCode)
-                {
-                    SelfLog.WriteLine(response.ReasonPhrase);
-                }
+            var jsonString = JsonSerializer.Serialize(logs, _jsonOptions);
+            var jsonContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
 
-                return response.IsSuccessStatusCode;
-            }
-            catch (Exception ex)
-            {
-                SelfLog.WriteLine(ex.Message);
-                return false;
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
+            var response = await httpClient.PostAsync(LoggerUriString, jsonContent);
+            response.EnsureSuccessStatusCode();
         }
     }
 }
