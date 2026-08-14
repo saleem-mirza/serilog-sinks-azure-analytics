@@ -34,7 +34,7 @@ The test project targets `net8.0` to match the library and CI, with `RollForward
 
 Targets `netstandard2.0;net8.0` with `LangVersion` 8.0. Language features newer than C# 8 will not compile. The assembly is strong-named with `src/Serilog.snk`, so a build needs that key file present.
 
-CI (`.github/workflows/dotnet.yml`) runs restore, build, test, and pack on push and PR against `vnext`. The default working branch is `dev`, so CI does not fire for it: run `dotnet test` yourself before pushing to `dev`.
+CI (`.github/workflows/dotnet.yml`) runs restore, build, test, and pack on push and PR against `master`, which is the release branch. The default working branch is `dev`, so CI does not fire for it: run `dotnet test` yourself before pushing to `dev`.
 
 ## Architecture
 
